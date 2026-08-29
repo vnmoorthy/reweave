@@ -13,3 +13,4 @@ venv/
 .DS_Store
 node_modules/
 assets/raw/
+.claude/
