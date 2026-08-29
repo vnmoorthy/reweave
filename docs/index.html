@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reweave</title>
+<meta name="description" content="Reweave — self-healing web data pipelines. An autonomous repair agent that detects structural drift, synthesizes repaired selectors anchored to golden records, and holds every fix for a named human to approve.">
+<meta property="og:title" content="Reweave — self-healing web data pipelines">
+<meta property="og:description" content="Break the site. Watch the agent stitch it back. Sentinel detects drift, Surgeon synthesizes the repair, Gate holds it for a named human. Exposed as an MCP server.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://vnmoorthy.github.io/reweave/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='90'%3E%F0%9F%A7%B5%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#07090d;
+    --panel:#0d1117;
+    --panel-2:#0a0e14;
+    --line:rgba(148,163,184,.12);
+    --line-strong:rgba(148,163,184,.22);
+    --text:#e6edf3;
+    --muted:#8b98a9;
+    --faint:#5b6675;
+    --cyan:#39d3e6;
+    --green:#3ddc84;
+    --amber:#ffb454;
+    --red:#ff5c69;
+    --cyan-dim:rgba(57,211,230,.12);
+    --green-dim:rgba(61,220,132,.12);
+    --amber-dim:rgba(255,180,84,.12);
+    --red-dim:rgba(255,92,105,.12);
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+    --radius:14px;
+    --nav-h:64px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:calc(var(--nav-h) + 24px)}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  ::selection{background:rgba(57,211,230,.28);color:#fff}
+  img{max-width:100%;display:block}
+  a{color:var(--cyan);text-decoration:none}
+  a:hover{text-decoration:none}
+
+  /* ---------- background texture ---------- */
+  .bg-grid{
+    position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      linear-gradient(rgba(148,163,184,.045) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(148,163,184,.045) 1px,transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(ellipse 90% 70% at 50% 0%,black 0%,transparent 72%);
+    -webkit-mask-image:radial-gradient(ellipse 90% 70% at 50% 0%,black 0%,transparent 72%);
+  }
+  .bg-glow{
+    position:fixed;z-index:0;pointer-events:none;border-radius:50%;filter:blur(120px);opacity:.16;
+  }
+  .bg-glow.g1{width:640px;height:640px;top:-260px;left:50%;transform:translateX(-70%);background:var(--cyan)}
+  .bg-glow.g2{width:480px;height:480px;top:-200px;left:50%;transform:translateX(10%);background:#2c6bff;opacity:.10}
+
+  main,nav,footer{position:relative;z-index:1}
+
+  .wrap{max-width:1140px;margin:0 auto;padding:0 24px}
+
+  /* ---------- nav ---------- */
+  nav{
+    position:fixed;top:0;left:0;right:0;z-index:50;height:var(--nav-h);
+    background:rgba(7,9,13,.78);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{max-width:1140px;margin:0 auto;padding:0 24px;height:100%;display:flex;align-items:center;gap:32px}
+  .logo{font-family:var(--mono);font-weight:700;font-size:17px;color:var(--text);letter-spacing:-.02em;display:flex;align-items:center;gap:9px}
+  .logo .dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 2.4s ease-in-out infinite}
+  .logo b{color:var(--cyan);font-weight:700}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .nav-links{display:flex;gap:26px;margin-left:auto;align-items:center}
+  .nav-links a{color:var(--muted);font-size:13.5px;font-weight:500;transition:color .18s}
+  .nav-links a:hover{color:var(--text)}
+  .nav-gh{
+    display:inline-flex;align-items:center;gap:8px;
+    border:1px solid var(--line-strong);border-radius:8px;padding:7px 14px;
+    color:var(--text) !important;font-size:13px;font-weight:600;
+    transition:border-color .18s,background .18s;
+  }
+  .nav-gh:hover{border-color:var(--cyan);background:var(--cyan-dim)}
+  .nav-gh svg{width:15px;height:15px;fill:currentColor}
+  @media(max-width:820px){.nav-links a:not(.nav-gh){display:none}}
+
+  /* ---------- shared section chrome ---------- */
+  section{padding:110px 0}
+  .eyebrow{
+    font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--cyan);margin-bottom:18px;display:flex;align-items:center;gap:12px;
+  }
+  .eyebrow::before{content:'';width:28px;height:1px;background:var(--cyan);opacity:.6}
+  h2{font-size:clamp(28px,4vw,40px);font-weight:700;letter-spacing:-.03em;line-height:1.15;max-width:720px}
+  .section-sub{color:var(--muted);font-size:17px;max-width:640px;margin-top:16px}
+  .mono{font-family:var(--mono)}
+  .c-cyan{color:var(--cyan)}.c-green{color:var(--green)}.c-amber{color:var(--amber)}.c-red{color:var(--red)}
+
+  /* ---------- reveal ---------- */
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.6,.2,1),transform .7s cubic-bezier(.2,.6,.2,1);transition-delay:var(--d,0s)}
+  .reveal.in{opacity:1;transform:none}
+
+  /* ---------- hero ---------- */
+  .hero{padding:calc(var(--nav-h) + 84px) 0 96px;position:relative}
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center}
+  @media(max-width:960px){.hero-grid{grid-template-columns:1fr;gap:48px}}
+  .hero-badge{
+    display:inline-flex;align-items:center;gap:10px;
+    font-family:var(--mono);font-size:12px;font-weight:500;color:var(--muted);
+    border:1px solid var(--line-strong);border-radius:100px;padding:7px 16px;margin-bottom:28px;
+    background:rgba(13,17,23,.6);
+  }
+  .hero-badge .b-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse 2s ease-in-out infinite}
+  .hero h1{
+    font-size:clamp(38px,5.4vw,62px);font-weight:800;letter-spacing:-.035em;line-height:1.06;
+  }
+  .hero h1 .stitch{
+    background:linear-gradient(92deg,var(--cyan) 0%,var(--green) 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .hero-sub{color:var(--muted);font-size:18px;line-height:1.65;margin-top:24px;max-width:540px}
+  .hero-sub strong{color:var(--text);font-weight:600}
+  .hero-ctas{display:flex;gap:14px;margin-top:36px;flex-wrap:wrap}
+  .btn{
+    display:inline-flex;align-items:center;gap:10px;
+    font-size:15px;font-weight:600;border-radius:10px;padding:13px 24px;
+    transition:transform .18s,box-shadow .18s,background .18s,border-color .18s;
+    cursor:pointer;
+  }
+  .btn-primary{
+    background:var(--cyan);color:#04252b !important;
+    box-shadow:0 0 0 1px rgba(57,211,230,.35),0 8px 32px -8px rgba(57,211,230,.45);
+  }
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 0 1px rgba(57,211,230,.55),0 14px 40px -8px rgba(57,211,230,.55)}
+  .btn-ghost{border:1px solid var(--line-strong);color:var(--text) !important;background:rgba(13,17,23,.5)}
+  .btn-ghost:hover{border-color:var(--cyan);background:var(--cyan-dim);transform:translateY(-2px)}
+  .btn svg{width:17px;height:17px;fill:currentColor}
+  .hero-meta{display:flex;gap:22px;margin-top:34px;flex-wrap:wrap}
+  .hero-meta span{font-family:var(--mono);font-size:12px;color:var(--faint);display:flex;align-items:center;gap:8px}
+  .hero-meta span::before{content:'✓';color:var(--green);font-weight:700}
+
+  /* ---------- terminal ---------- */
+  .term{
+    background:var(--panel-2);
+    border:1px solid var(--line-strong);
+    border-radius:var(--radius);
+    box-shadow:0 24px 80px -24px rgba(0,0,0,.8),0 0 0 1px rgba(57,211,230,.06),0 0 90px -30px rgba(57,211,230,.25);
+    overflow:hidden;
+    position:relative;
+  }
+  .term::after{
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px);
+    mix-blend-mode:overlay;
+  }
+  .term-bar{
+    display:flex;align-items:center;gap:8px;padding:12px 16px;
+    background:rgba(148,163,184,.05);border-bottom:1px solid var(--line);
+  }
+  .term-bar .tb{width:11px;height:11px;border-radius:50%}
+  .tb.r{background:#ff5f57}.tb.y{background:#febc2e}.tb.g{background:#28c840}
+  .term-bar .title{margin-left:10px;font-family:var(--mono);font-size:11.5px;color:var(--faint);letter-spacing:.04em}
+  .term-body{
+    padding:20px 20px 24px;
+    font-family:var(--mono);font-size:12.5px;line-height:1.9;
+    min-height:346px;
+    overflow-x:auto;
+  }
+  .tl{white-space:pre-wrap;word-break:break-word}
+  .tl .t{color:var(--faint);margin-right:6px}
+  .tl .d{color:var(--muted)}
+  .tl .ok{color:var(--cyan)}
+  .tl .warn{color:var(--amber)}
+  .tl .bad{color:var(--red)}
+  .tl .good{color:var(--green)}
+  .cursor{
+    display:inline-block;width:8px;height:15px;background:var(--cyan);
+    vertical-align:-2px;animation:blink 1s steps(1) infinite;
+  }
+  @keyframes blink{50%{opacity:0}}
+
+  /* ---------- pain / stats ---------- */
+  #pain{padding-top:80px}
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:52px}
+  @media(max-width:960px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:540px){.stat-grid{grid-template-columns:1fr}}
+  .stat{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:30px 26px;position:relative;overflow:hidden;
+    transition:border-color .25s,transform .25s;
+  }
+  .stat:hover{border-color:var(--line-strong);transform:translateY(-3px)}
+  .stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--sc,var(--cyan));opacity:.85}
+  .stat .num{
+    font-family:var(--mono);font-size:clamp(30px,3.4vw,40px);font-weight:700;letter-spacing:-.02em;
+    color:var(--sc,var(--cyan));line-height:1.1;
+  }
+  .stat .num small{font-size:.55em;font-weight:600;color:var(--muted)}
+  .stat .lbl{font-size:14px;color:var(--text);font-weight:600;margin-top:12px}
+  .stat .src{font-size:12.5px;color:var(--faint);margin-top:6px;line-height:1.5}
+
+  /* ---------- how it works ---------- */
+  .role-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:52px}
+  @media(max-width:900px){.role-grid{grid-template-columns:1fr}}
+  .role{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:32px 28px;position:relative;overflow:hidden;
+    transition:border-color .25s,transform .25s,box-shadow .25s;
+  }
+  .role:hover{transform:translateY(-4px);border-color:var(--rc);box-shadow:0 20px 50px -22px rgba(0,0,0,.7),0 0 44px -18px var(--rc)}
+  .role .glyph{
+    width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    background:color-mix(in srgb,var(--rc) 12%,transparent);border:1px solid color-mix(in srgb,var(--rc) 35%,transparent);
+    margin-bottom:22px;
+  }
+  .role .glyph svg{width:23px;height:23px;stroke:var(--rc);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .role .tag{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.2em;color:var(--rc);text-transform:uppercase}
+  .role h3{font-size:21px;font-weight:700;letter-spacing:-.02em;margin:8px 0 12px}
+  .role p{color:var(--muted);font-size:14.5px;line-height:1.7}
+  .role ul{list-style:none;margin-top:18px;display:grid;gap:9px}
+  .role li{font-size:13.5px;color:var(--muted);display:flex;gap:10px;align-items:baseline}
+  .role li::before{content:'▸';color:var(--rc);font-family:var(--mono);flex-shrink:0}
+  .role li b{color:var(--text);font-weight:600}
+
+  .loop-panel{
+    margin-top:26px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:34px 30px 26px;
+  }
+  .loop-panel h4{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:22px}
+  .loop-scroll{overflow-x:auto;padding-bottom:6px}
+  .loop-scroll svg{min-width:820px;width:100%;height:auto;display:block}
+  .loop-foot{display:flex;gap:26px;flex-wrap:wrap;margin-top:20px;padding-top:20px;border-top:1px solid var(--line)}
+  .loop-foot .lf{font-size:13px;color:var(--muted);display:flex;gap:10px;align-items:center}
+  .loop-foot .lf b{color:var(--text);font-weight:600}
+  .loop-foot .lf .sw{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+  .infra-strip{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+  @media(max-width:760px){.infra-strip{grid-template-columns:1fr}}
+  .infra{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 26px;display:flex;gap:18px;align-items:flex-start;
+  }
+  .infra .k{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);flex-shrink:0;padding-top:3px;min-width:96px}
+  .infra p{font-size:14px;color:var(--muted);line-height:1.65}
+  .infra p b{color:var(--text);font-weight:600}
+
+  /* ---------- demo ---------- */
+  .step-label{
+    display:inline-flex;align-items:center;gap:12px;margin-bottom:20px;
+    font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+  }
+  .step-label .n{
+    width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    background:var(--cyan-dim);border:1px solid rgba(57,211,230,.35);color:var(--cyan);
+    font-size:13px;font-weight:700;letter-spacing:0;
+  }
+  .demo-step{margin-top:72px}
+  .demo-step h3{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px}
+  .demo-step .cap{color:var(--muted);font-size:15px;max-width:680px;line-height:1.7;margin-bottom:30px}
+  .demo-step .cap b{color:var(--text);font-weight:600}
+  .shot{
+    background:var(--panel-2);border:1px solid var(--line-strong);border-radius:var(--radius);
+    overflow:hidden;box-shadow:0 30px 90px -30px rgba(0,0,0,.85);
+  }
+  .shot .shot-bar{display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid var(--line);background:rgba(148,163,184,.05)}
+  .shot .shot-bar .tb{width:10px;height:10px;border-radius:50%}
+  .shot .shot-bar .url{
+    margin-left:8px;font-family:var(--mono);font-size:11px;color:var(--faint);
+    background:rgba(148,163,184,.08);border-radius:6px;padding:3px 12px;
+  }
+  .shot img{width:100%;cursor:zoom-in}
+  .era-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:center}
+  @media(max-width:860px){.era-grid{grid-template-columns:1fr}.era-arrow{transform:rotate(90deg);margin:0 auto}}
+  .era-arrow{color:var(--red);flex-shrink:0}
+  .era-arrow svg{width:36px;height:36px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .era-tag{
+    display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;font-weight:600;
+    padding:5px 12px;border-radius:100px;margin-bottom:12px;letter-spacing:.06em;
+  }
+  .era-tag.v1{background:var(--green-dim);color:var(--green);border:1px solid rgba(61,220,132,.3)}
+  .era-tag.v2{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,92,105,.3)}
+  .era-note{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:12px;line-height:1.7}
+  .era-note s{color:var(--red);text-decoration-color:rgba(255,92,105,.6)}
+  .era-note em{color:var(--green);font-style:normal}
+
+  .annotated{position:relative}
+  .pin{
+    position:absolute;width:26px;height:26px;border-radius:50%;
+    background:rgba(7,9,13,.85);border:1.5px solid var(--cyan);color:var(--cyan);
+    font-family:var(--mono);font-size:12px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    transform:translate(-50%,-50%);cursor:default;z-index:3;
+    box-shadow:0 0 0 4px rgba(57,211,230,.14),0 0 18px rgba(57,211,230,.35);
+    transition:transform .18s,box-shadow .18s;
+  }
+  .pin:hover{transform:translate(-50%,-50%) scale(1.18);box-shadow:0 0 0 6px rgba(57,211,230,.22),0 0 26px rgba(57,211,230,.55)}
+  @media(max-width:760px){.pin{display:none}}
+  .legend{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:22px}
+  @media(max-width:760px){.legend{grid-template-columns:1fr}}
+  .lg{
+    display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:10px;
+    border:1px solid var(--line);background:var(--panel);transition:border-color .2s,background .2s;
+  }
+  .lg.hl{border-color:var(--cyan);background:var(--cyan-dim)}
+  .lg .n{
+    width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-top:1px;
+    border:1.5px solid var(--cyan);color:var(--cyan);font-family:var(--mono);font-size:11px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .lg p{font-size:13.5px;color:var(--muted);line-height:1.6}
+  .lg p b{color:var(--text);font-weight:600}
+  .lg p code{font-family:var(--mono);font-size:12px;color:var(--cyan);background:rgba(57,211,230,.08);padding:1px 5px;border-radius:4px}
+
+  /* ---------- safety ---------- */
+  .safe-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:52px}
+  @media(max-width:960px){.safe-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:620px){.safe-grid{grid-template-columns:1fr}}
+  .safe{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:28px 26px;transition:border-color .25s,transform .25s;
+  }
+  .safe:hover{border-color:rgba(61,220,132,.4);transform:translateY(-3px)}
+  .safe .glyph{
+    width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:var(--green-dim);border:1px solid rgba(61,220,132,.3);margin-bottom:18px;
+  }
+  .safe .glyph svg{width:20px;height:20px;stroke:var(--green);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .safe h3{font-size:16.5px;font-weight:700;letter-spacing:-.01em;margin-bottom:8px}
+  .safe p{font-size:13.5px;color:var(--muted);line-height:1.65}
+  .safe p code{font-family:var(--mono);font-size:12px;color:var(--amber);background:var(--amber-dim);padding:1px 6px;border-radius:4px}
+
+  /* ---------- impact ---------- */
+  .impact-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;margin-top:52px;align-items:stretch}
+  @media(max-width:900px){.impact-grid{grid-template-columns:1fr}}
+  .calc{
+    background:var(--panel-2);border:1px solid var(--line-strong);border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .calc .calc-bar{padding:13px 20px;border-bottom:1px solid var(--line);background:rgba(148,163,184,.05);
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .calc .calc-body{padding:24px 26px;font-family:var(--mono);font-size:13.5px;line-height:2.15;overflow-x:auto}
+  .calc .row{display:flex;justify-content:space-between;gap:24px;white-space:nowrap}
+  .calc .row .k{color:var(--muted)}
+  .calc .row .v{color:var(--text);font-weight:500}
+  .calc .row .v.hot{color:var(--red);font-weight:700}
+  .calc .row .v.cool{color:var(--green);font-weight:700}
+  .calc .sep{border:none;border-top:1px dashed var(--line-strong);margin:12px 0}
+  .impact-side{display:flex;flex-direction:column;gap:22px}
+  .compare{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:28px 26px;flex:1;
+  }
+  .compare h4{font-size:15px;font-weight:700;margin-bottom:22px;letter-spacing:-.01em}
+  .bar-row{margin-bottom:22px}
+  .bar-row .bl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;margin-bottom:9px}
+  .bar-row .bl .who{color:var(--muted)}
+  .bar-row .bl .val{font-weight:700}
+  .bar-track{height:12px;border-radius:100px;background:rgba(148,163,184,.09);overflow:hidden}
+  .bar-fill{height:100%;border-radius:100px;width:0;transition:width 1.4s cubic-bezier(.2,.7,.2,1) .25s}
+  .bar-fill.manual{background:linear-gradient(90deg,#a13842,var(--red))}
+  .bar-fill.agent{background:linear-gradient(90deg,#1d8f56,var(--green))}
+  .times{
+    text-align:center;padding:22px;border-radius:var(--radius);
+    background:linear-gradient(160deg,rgba(57,211,230,.10),rgba(61,220,132,.08));
+    border:1px solid rgba(57,211,230,.28);
+  }
+  .times .x{font-family:var(--mono);font-size:38px;font-weight:700;letter-spacing:-.02em;
+    background:linear-gradient(92deg,var(--cyan),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .times p{font-size:13px;color:var(--muted);margin-top:4px}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--line);padding:56px 0 64px;margin-top:40px}
+  .foot-inner{display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap;align-items:flex-start}
+  .foot-left .logo{margin-bottom:14px}
+  .foot-left p{font-size:13.5px;color:var(--faint);max-width:380px;line-height:1.7}
+  .foot-right{display:flex;flex-direction:column;gap:12px;align-items:flex-end;text-align:right}
+  @media(max-width:640px){.foot-right{align-items:flex-start;text-align:left}}
+  .foot-right .credits{font-family:var(--mono);font-size:12px;color:var(--faint);line-height:1.9}
+  .foot-right .credits b{color:var(--muted);font-weight:600}
+  .foot-right a.gh{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:13.5px;font-weight:600;transition:color .18s}
+  .foot-right a.gh:hover{color:var(--cyan)}
+  .foot-right a.gh svg{width:16px;height:16px;fill:currentColor}
+
+  /* ---------- lightbox ---------- */
+  .lightbox{
+    position:fixed;inset:0;z-index:100;background:rgba(4,6,9,.92);
+    display:none;align-items:center;justify-content:center;padding:36px;cursor:zoom-out;
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  }
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:100%;max-height:100%;border-radius:10px;border:1px solid var(--line-strong);box-shadow:0 40px 120px rgba(0,0,0,.9)}
+
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+    html{scroll-behavior:auto}
+    .reveal{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow g1" aria-hidden="true"></div>
+<div class="bg-glow g2" aria-hidden="true"></div>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#top" class="logo" style="color:var(--text)"><span class="dot"></span>re<b>weave</b></a>
+    <div class="nav-links">
+      <a href="#pain">The pain</a>
+      <a href="#how">How it works</a>
+      <a href="#demo">Live demo</a>
+      <a href="#safety">Safety</a>
+      <a href="#impact">Impact</a>
+      <a class="nav-gh" href="https://github.com/vnmoorthy/reweave" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div>
+          <div class="hero-badge reveal"><span class="b-dot"></span>autonomous repair agent · exposed as an MCP server</div>
+          <h1 class="reveal" style="--d:.06s">Break the site.<br><span class="stitch">Watch the agent stitch it back.</span></h1>
+          <p class="hero-sub reveal" style="--d:.12s">
+            Reweave is a self-healing layer for web data pipelines. When a target site redesign breaks
+            extraction, the <strong>Sentinel</strong> detects structural drift, the <strong>Surgeon</strong>
+            synthesizes repaired selectors anchored to known-true facts, and the <strong>Gate</strong> holds
+            the fix until a named human approves — before a single bad row ships.
+          </p>
+          <div class="hero-ctas reveal" style="--d:.18s">
+            <a class="btn btn-primary" href="https://github.com/vnmoorthy/reweave" target="_blank" rel="noopener">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+              View on GitHub
+            </a>
+            <a class="btn btn-ghost" href="#how">See the loop ↓</a>
+          </div>
+          <div class="hero-meta reveal" style="--d:.24s">
+            <span>golden-record validation</span>
+            <span>human-approved deploys</span>
+            <span>MCP-native</span>
+          </div>
+        </div>
+
+        <div class="reveal" style="--d:.2s">
+          <div class="term" aria-label="Reweave healing event log">
+            <div class="term-bar">
+              <span class="tb r"></span><span class="tb y"></span><span class="tb g"></span>
+              <span class="title">reweave · agent event stream</span>
+            </div>
+            <div class="term-body" id="term">
+              <div class="tl"><span class="t">16:35:49</span><span class="d">pipeline run via demo:v1 — 8 rows, confidence 100% (spec v1)</span></div>
+              <div class="tl"><span class="t">16:35:49</span><span class="bad">target site shipped a redesign (now structural era v2)</span></div>
+              <div class="tl"><span class="t">16:35:49</span><span class="d">pipeline run via demo:v2 — 0 rows, confidence 0% (spec v1)</span></div>
+              <div class="tl"><span class="t">16:35:49</span><span class="warn">structural drift detected: 0 rows vs 8 golden records; title/price/url 0% extractable</span></div>
+              <div class="tl"><span class="t">16:35:49</span><span class="ok">Surgeon engaged: record-anchored selector synthesis</span></div>
+              <div class="tl"><span class="t">16:35:50</span><span class="ok">repair synthesized + self-tested in isolation: 4 selector changes, validation 100%</span></div>
+              <div class="tl"><span class="t">16:35:50</span><span class="ok">heal heal_d4bd304690 awaiting human approval (v1 → v2)</span></div>
+              <div class="tl"><span class="t">16:36:27</span><span class="good">moorthy approved heal_d4bd304690: spec v2 deployed (+90 engineer-min saved)</span></div>
+              <div class="tl"><span class="t">16:36:27</span><span class="good">pipeline run via demo:v2 — 9 rows, confidence 100% (spec v2)</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ THE PAIN ============ -->
+  <section id="pain">
+    <div class="wrap">
+      <div class="eyebrow reveal">the pain</div>
+      <h2 class="reveal" style="--d:.05s">Selector surgery is a tax every data team quietly pays.</h2>
+      <p class="section-sub reveal" style="--d:.1s">
+        Scrapers don't crash when a site redesigns — they go quiet, or worse, ship wrong data.
+        Someone notices days later, then spends an afternoon in devtools rebuilding selectors by hand.
+      </p>
+      <div class="stat-grid">
+        <div class="stat reveal" style="--sc:var(--red)">
+          <div class="num">10–15<small>%</small></div>
+          <div class="lbl">of scrapers break every week</div>
+          <div class="src">community-reported break rate, r/webscraping</div>
+        </div>
+        <div class="stat reveal" style="--sc:var(--amber);--d:.08s">
+          <div class="num"><span data-count="487" data-suffix="">0</span><small> hrs/yr</small></div>
+          <div class="lbl">of engineer time, per 50-scraper fleet</div>
+          <div class="src">~325 breaks/yr &times; 90 minutes of manual selector surgery each</div>
+        </div>
+        <div class="stat reveal" style="--sc:var(--amber);--d:.16s">
+          <div class="num"><small>$</small><span data-count="46312" data-format="comma">0</span></div>
+          <div class="lbl">burned annually on repair toil</div>
+          <div class="src">at a fully-loaded engineering rate — pure maintenance, zero new value</div>
+        </div>
+        <div class="stat reveal" style="--sc:var(--green);--d:.24s">
+          <div class="num">90 min <small>→</small> 30 s</div>
+          <div class="lbl">per fix, with Reweave</div>
+          <div class="src">each manual repair becomes a review-and-approve</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section id="how">
+    <div class="wrap">
+      <div class="eyebrow reveal">how it works</div>
+      <h2 class="reveal" style="--d:.05s">Three roles. One healing loop.</h2>
+      <p class="section-sub reveal" style="--d:.1s">
+        Detection, synthesis, and approval are deliberately separated — the agent that finds the break
+        is not the agent that ships the fix, and no fix ships without a human.
+      </p>
+
+      <div class="role-grid">
+        <div class="role reveal" style="--rc:var(--amber)">
+          <div class="glyph"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></div>
+          <div class="tag">01 · Detect</div>
+          <h3>Sentinel</h3>
+          <p>Validates every run against <b style="color:var(--text)">golden records</b> — facts the pipeline has already proven true. It catches silent failures, not just crashes.</p>
+          <ul>
+            <li><b>Golden-record validation</b> on every pipeline run</li>
+            <li><b>Per-field drift reports:</b> row volume, extractability, confidence</li>
+            <li>Flags <b>0 rows vs 8 known-true records</b> instead of shrugging at an empty page</li>
+          </ul>
+        </div>
+        <div class="role reveal" style="--rc:var(--cyan);--d:.1s">
+          <div class="glyph"><svg viewBox="0 0 24 24"><path d="M4 20l6.5-6.5M20 4l-8 8"/><path d="M14.5 3.5l6 6-3 3-6-6z"/><circle cx="5.5" cy="18.5" r="2.5"/></svg></div>
+          <div class="tag">02 · Repair</div>
+          <h3>Surgeon</h3>
+          <p><b style="color:var(--text)">Record-anchored selector synthesis:</b> it re-locates known-true facts in the redesigned DOM and works backward to the selectors that find them.</p>
+          <ul>
+            <li><b>Re-anchors</b> golden values ("$379.99", "Aurora 27&quot; 4K Monitor") in the new DOM</li>
+            <li><b>Generalizes</b> the shared structural signature across all matches</li>
+            <li><b>Validates every candidate</b> against all golden records before proposing</li>
+          </ul>
+        </div>
+        <div class="role reveal" style="--rc:var(--green);--d:.2s">
+          <div class="glyph"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"/><path d="M9 12l2.2 2.2L15.5 9.7"/></svg></div>
+          <div class="tag">03 · Approve</div>
+          <h3>Gate</h3>
+          <p>Nothing deploys itself. The repair waits with <b style="color:var(--text)">full before/after diffs</b> and re-extracted data until a named human signs off.</p>
+          <ul>
+            <li><b>Side-by-side selector diffs</b> + live re-extraction preview</li>
+            <li><b>Named approver required</b> — accountability is part of the protocol</li>
+            <li><b>30-second review</b>, permanently recorded in the audit ledger</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="loop-panel reveal">
+        <h4>The healing loop</h4>
+        <div class="loop-scroll">
+          <svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the Reweave healing loop: fetch, extract, validate, then on drift the Surgeon synthesizes a repair, the Gate collects human approval, and the new spec is deployed for the next run.">
+            <defs>
+              <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0L10 5L0 10z" fill="#8b98a9"/>
+              </marker>
+              <marker id="ah-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0L10 5L0 10z" fill="#ff5c69"/>
+              </marker>
+              <marker id="ah-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0L10 5L0 10z" fill="#3ddc84"/>
+              </marker>
+            </defs>
+            <style>
+              .nd{fill:#0a0e14;stroke-width:1.2;rx:10}
+              .nt{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;fill:#e6edf3;text-anchor:middle}
+              .ns{font-family:'JetBrains Mono',monospace;font-size:10px;fill:#8b98a9;text-anchor:middle}
+              .rl{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-anchor:middle}
+              .fl{font-family:'JetBrains Mono',monospace;font-size:10.5px;text-anchor:middle}
+              .edge{stroke:#8b98a9;stroke-width:1.4;fill:none}
+            </style>
+            <!-- top row -->
+            <rect class="nd" x="60" y="42" width="180" height="58" rx="10" stroke="rgba(148,163,184,.35)"/>
+            <text class="nt" x="150" y="67">FETCH</text>
+            <text class="ns" x="150" y="86">Bright Data Web Unlocker</text>
+
+            <rect class="nd" x="360" y="42" width="180" height="58" rx="10" stroke="rgba(148,163,184,.35)"/>
+            <text class="nt" x="450" y="67">EXTRACT</text>
+            <text class="ns" x="450" y="86">active spec vN</text>
+
+            <text class="rl" x="750" y="30" fill="#ffb454">SENTINEL</text>
+            <rect class="nd" x="660" y="42" width="180" height="58" rx="10" stroke="#ffb454"/>
+            <text class="nt" x="750" y="67">VALIDATE</text>
+            <text class="ns" x="750" y="86">vs golden records</text>
+
+            <!-- bottom row -->
+            <text class="rl" x="750" y="200" fill="#39d3e6">SURGEON</text>
+            <rect class="nd" x="660" y="212" width="180" height="58" rx="10" stroke="#39d3e6"/>
+            <text class="nt" x="750" y="237">SYNTHESIZE</text>
+            <text class="ns" x="750" y="256">record-anchored repair</text>
+
+            <text class="rl" x="450" y="200" fill="#3ddc84">GATE</text>
+            <rect class="nd" x="360" y="212" width="180" height="58" rx="10" stroke="#3ddc84"/>
+            <text class="nt" x="450" y="237">APPROVE</text>
+            <text class="ns" x="450" y="256">named human · full diffs</text>
+
+            <rect class="nd" x="60" y="212" width="180" height="58" rx="10" stroke="rgba(148,163,184,.35)"/>
+            <text class="nt" x="150" y="237">DEPLOY</text>
+            <text class="ns" x="150" y="256">immutable spec vN+1</text>
+
+            <!-- edges -->
+            <line class="edge" x1="240" y1="71" x2="352" y2="71" marker-end="url(#ah)"/>
+            <line class="edge" x1="540" y1="71" x2="652" y2="71" marker-end="url(#ah)"/>
+            <text class="fl" x="596" y="60" fill="#3ddc84">healthy → rows ship</text>
+
+            <line class="edge" x1="750" y1="100" x2="750" y2="204" stroke="#ff5c69" stroke-dasharray="5 5" marker-end="url(#ah-red)"/>
+            <text class="fl" x="787" y="158" fill="#ff5c69">drift!</text>
+
+            <line class="edge" x1="660" y1="241" x2="548" y2="241" marker-end="url(#ah)"/>
+            <text class="fl" x="604" y="230" fill="#39d3e6">100% validated</text>
+            <line class="edge" x1="360" y1="241" x2="248" y2="241" marker-end="url(#ah)"/>
+            <text class="fl" x="304" y="230" fill="#3ddc84">approved</text>
+
+            <line class="edge" x1="150" y1="212" x2="150" y2="108" stroke="#3ddc84" marker-end="url(#ah-green)"/>
+            <text class="fl" x="107" y="158" fill="#3ddc84">next run</text>
+          </svg>
+        </div>
+        <div class="loop-foot">
+          <div class="lf"><span class="sw" style="background:var(--amber)"></span><b>Sentinel</b>&nbsp;flags drift with per-field precision</div>
+          <div class="lf"><span class="sw" style="background:var(--cyan)"></span><b>Surgeon</b>&nbsp;proposes only selectors that pass every golden record</div>
+          <div class="lf"><span class="sw" style="background:var(--green)"></span><b>Gate</b>&nbsp;requires a named human before anything deploys</div>
+        </div>
+      </div>
+
+      <div class="infra-strip">
+        <div class="infra reveal">
+          <span class="k">fetch layer</span>
+          <p><b>Bright Data Web Unlocker</b> handles hostile targets — anti-bot walls, geo-blocks, rendering — so the healing loop sees the same DOM a real user sees.</p>
+        </div>
+        <div class="infra reveal" style="--d:.1s">
+          <span class="k">agent layer</span>
+          <p>Reweave is an <b>MCP server</b>: the <b>TrueForge</b> agent harness drives detection and repair as tools, with harness-level approval gates layered on top of Reweave's own Gate.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LIVE DEMO ============ -->
+  <section id="demo">
+    <div class="wrap">
+      <div class="eyebrow reveal">live demo walkthrough</div>
+      <h2 class="reveal" style="--d:.05s">One click ships a hostile redesign. The agent does the rest.</h2>
+      <p class="section-sub reveal" style="--d:.1s">
+        The demo runs a real pipeline against <span class="mono c-cyan">demo://nimbusmart</span>, a product site with a
+        "ship redesign" button that renames every class and restructures the DOM — the exact failure that kills scrapers in the wild.
+      </p>
+
+      <div class="demo-step reveal">
+        <div class="step-label"><span class="n">01</span>the target mutates</div>
+        <h3>Same products. Entirely new DOM.</h3>
+        <p class="cap">
+          Era v1 → era v2: light theme to dark, serif rebrand, and — the part that matters — <b>every selector's
+          anchor is gone</b>. <span class="mono" style="font-size:13px"><s style="color:var(--red)">div.product-card</s> → <em class="c-green" style="font-style:normal">article.tile</em></span>.
+          The old spec extracts <b class="c-red">0 rows</b> and raises no exception. That's a silent failure.
+        </p>
+        <div class="era-grid">
+          <div>
+            <span class="era-tag v1"><span style="width:7px;height:7px;border-radius:50%;background:var(--green)"></span>ERA V1 · spec works</span>
+            <div class="shot">
+              <div class="shot-bar"><span class="tb" style="background:#3a4353"></span><span class="tb" style="background:#3a4353"></span><span class="tb" style="background:#3a4353"></span><span class="url">demo://nimbusmart · era v1</span></div>
+              <img class="zoomable" src="assets/site-v1.png" alt="NimbusMart era v1: light-themed product grid where the original selectors still match" loading="lazy" width="1280" height="800">
+            </div>
+            <p class="era-note">div.product-card › h3.product-name › span.price-tag<br>8 rows · confidence 100%</p>
+          </div>
+          <div class="era-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></div>
+          <div>
+            <span class="era-tag v2"><span style="width:7px;height:7px;border-radius:50%;background:var(--red)"></span>ERA V2 · spec breaks</span>
+            <div class="shot">
+              <div class="shot-bar"><span class="tb" style="background:#3a4353"></span><span class="tb" style="background:#3a4353"></span><span class="tb" style="background:#3a4353"></span><span class="url">demo://nimbusmart · era v2</span></div>
+              <img class="zoomable" src="assets/site-v2.png" alt="NimbusMart era v2: dark redesigned product grid where every class name has changed" loading="lazy" width="1280" height="800">
+            </div>
+            <p class="era-note"><s>div.product-card</s> → <em>article.tile</em> · <s>h3.product-name</s> → <em>h2.tile__heading</em><br>0 rows · confidence 0% · <span class="c-red">no exception raised</span></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-step reveal">
+        <div class="step-label"><span class="n">02</span>the agent responds</div>
+        <h3>Drift caught, repair synthesized, held at the gate.</h3>
+        <p class="cap">
+          Within one run: the Sentinel reports per-field drift, the Surgeon re-anchors all 8 golden records in the new
+          DOM and synthesizes 4 selector changes at <b class="c-green">100% validation confidence</b> — and the whole
+          heal sits waiting in the approval rail. No deploy has happened yet.
+        </p>
+        <div class="shot annotated">
+          <div class="shot-bar"><span class="tb r"></span><span class="tb y"></span><span class="tb g"></span><span class="url">reweave · mission control</span></div>
+          <img class="zoomable" src="assets/dashboard-gate.png" alt="Reweave mission control: fleet panel marked BROKEN, agent event stream showing drift detection and repair synthesis, and the approval gate with selector diffs, re-extracted data, and an Approve deploy button" width="1600" height="1000">
+          <span class="pin" data-n="1" style="left:8.7%;top:16%">1</span>
+          <span class="pin" data-n="2" style="left:45%;top:26%">2</span>
+          <span class="pin" data-n="3" style="left:80%;top:16.5%">3</span>
+          <span class="pin" data-n="4" style="left:86.5%;top:33%">4</span>
+          <span class="pin" data-n="5" style="left:86.5%;top:64%">5</span>
+          <span class="pin" data-n="6" style="left:86.5%;top:74%">6</span>
+        </div>
+        <div class="legend">
+          <div class="lg" data-n="1"><span class="n">1</span><p><b>Fleet status flips to BROKEN.</b> NimbusMart's pipeline is pinned to spec v1 with 8 golden records on file — the ground truth the whole loop runs on.</p></div>
+          <div class="lg" data-n="2"><span class="n">2</span><p><b>The event stream narrates the drift.</b> 0 rows vs 8 golden records; title, price, and url each 0% extractable. A crash-only monitor would have seen nothing.</p></div>
+          <div class="lg" data-n="3"><span class="n">3</span><p><b>The heal arrives 100% validated.</b> <code>heal_d4bd304690</code> proposes spec v1 → v2, synthesized from golden-anchored fields.</p></div>
+          <div class="lg" data-n="4"><span class="n">4</span><p><b>Full before/after selector diffs.</b> <code>div.product-card</code> → <code>article.tile</code>, <code>span.price-tag</code> → <code>span.cost__now</code> — every field with its match rate against all golden records.</p></div>
+          <div class="lg" data-n="5"><span class="n">5</span><p><b>Re-extracted data, previewed live.</b> The repaired spec is run in isolation first: real titles, real prices, before anything is trusted.</p></div>
+          <div class="lg" data-n="6"><span class="n">6</span><p><b>A named human closes the loop.</b> The approver types their name — accountability is a required field — then <b>Approve deploy</b>. Until then, nothing moves.</p></div>
+        </div>
+      </div>
+
+      <div class="demo-step reveal">
+        <div class="step-label"><span class="n">03</span>the loom goes quiet</div>
+        <h3>Approved, deployed, healthy — in 38 seconds.</h3>
+        <p class="cap">
+          After approval the ledger records who deployed what: <span class="mono c-green" style="font-size:13px">moorthy approved heal_d4bd304690 · spec v2 deployed</span>.
+          The next pipeline run returns <b class="c-green">9 rows at 100% confidence</b>, the fleet flips back to
+          HEALTHY, and the approval rail reads <b>"No repairs awaiting approval. The loom is quiet."</b>
+        </p>
+        <div class="shot">
+          <div class="shot-bar"><span class="tb r"></span><span class="tb y"></span><span class="tb g"></span><span class="url">reweave · mission control — after approval</span></div>
+          <img class="zoomable" src="assets/dashboard-healed.png" alt="Reweave mission control after approval: fleet HEALTHY on spec v2, ledger showing the named approval, and an empty approval gate reading 'The loom is quiet'" loading="lazy" width="1600" height="1000">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SAFETY ============ -->
+  <section id="safety">
+    <div class="wrap">
+      <div class="eyebrow reveal">safety by design</div>
+      <h2 class="reveal" style="--d:.05s">An autonomous agent that is structurally incapable of going rogue.</h2>
+      <p class="section-sub reveal" style="--d:.1s">
+        Reweave assumes the agent will sometimes be wrong. Every safeguard is load-bearing, not decorative —
+        and the harness above it doesn't have to trust it.
+      </p>
+      <div class="safe-grid">
+        <div class="safe reveal">
+          <div class="glyph"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+          <h3>Approval gate</h3>
+          <p>Detection and synthesis are autonomous; deployment never is. Every heal waits at the Gate with full before/after diffs until a human acts.</p>
+        </div>
+        <div class="safe reveal" style="--d:.06s">
+          <div class="glyph"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg></div>
+          <h3>Accountable actor</h3>
+          <p>Approval requires a name. Every deploy is attributable to a specific person — "who shipped this selector change?" always has an answer.</p>
+        </div>
+        <div class="safe reveal" style="--d:.12s">
+          <div class="glyph"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></div>
+          <h3>Audit ledger</h3>
+          <p>An append-only event stream records every detection, synthesis, validation score, approval, and deploy — the full provenance of every spec.</p>
+        </div>
+        <div class="safe reveal" style="--d:.18s">
+          <div class="glyph"><svg viewBox="0 0 24 24"><path d="M12 3v18M5 7l7-4 7 4M5 7v4c0 5 3 8 7 10 4-2 7-5 7-10V7"/></svg></div>
+          <h3>Immutable spec versions</h3>
+          <p>Specs are never edited in place. v1 survives v2 forever; a bad heal rolls back with a pointer move, not a frantic re-repair.</p>
+        </div>
+        <div class="safe reveal" style="--d:.24s">
+          <div class="glyph"><svg viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M12 12L3 7M12 12l9-5"/></svg></div>
+          <h3>MCP <code>destructiveHint</code></h3>
+          <p>The deploy tool is flagged destructive in the MCP contract itself, so any well-behaved client interposes its own confirmation — the protocol tells the truth about risk.</p>
+        </div>
+        <div class="safe reveal" style="--d:.3s">
+          <div class="glyph"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"/><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10" stroke-dasharray="2.5 3"/></svg></div>
+          <h3>Defense in depth via TrueForge</h3>
+          <p>The TrueForge harness drives Reweave over MCP with its own approval gates layered on top of the Gate. Two independent humans-in-the-loop, one deploy.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ IMPACT ============ -->
+  <section id="impact">
+    <div class="wrap">
+      <div class="eyebrow reveal">quantified impact</div>
+      <h2 class="reveal" style="--d:.05s">The math on a 50-scraper fleet.</h2>
+      <p class="section-sub reveal" style="--d:.1s">
+        Take the community's own break rate, a typical fleet, and a stopwatch. The toil is not hypothetical — it's payroll.
+      </p>
+      <div class="impact-grid">
+        <div class="calc reveal">
+          <div class="calc-bar">fleet-projection.calc</div>
+          <div class="calc-body">
+            <div class="row"><span class="k">fleet_size</span><span class="v">50 scrapers</span></div>
+            <div class="row"><span class="k">weekly_break_rate</span><span class="v">12.5%  <span style="color:var(--faint)">(r/webscraping: 10–15%)</span></span></div>
+            <div class="row"><span class="k">breaks_per_year</span><span class="v">50 × 0.125 × 52  =  <b class="c-amber">325</b></span></div>
+            <hr class="sep">
+            <div class="row"><span class="k">manual_fix_time</span><span class="v">90 min each</span></div>
+            <div class="row"><span class="k">engineer_hours</span><span class="v">325 × 1.5 h  =  <b class="c-amber">487.5 h/yr</b></span></div>
+            <div class="row"><span class="k">annual_toil</span><span class="v hot">≈ $46,312 / yr</span></div>
+            <hr class="sep">
+            <div class="row"><span class="k">reweave_fix_time</span><span class="v">30 s review-and-approve</span></div>
+            <div class="row"><span class="k">engineer_hours</span><span class="v">325 × 30 s  ≈  <b class="c-green">2.7 h/yr</b></span></div>
+            <div class="row"><span class="k">toil_recovered</span><span class="v cool">≈ $46,000 / yr back</span></div>
+          </div>
+        </div>
+        <div class="impact-side">
+          <div class="compare reveal" style="--d:.1s">
+            <h4>Time per broken scraper</h4>
+            <div class="bar-row">
+              <div class="bl"><span class="who">manual selector surgery</span><span class="val c-red">90 min</span></div>
+              <div class="bar-track"><div class="bar-fill manual" data-w="100"></div></div>
+            </div>
+            <div class="bar-row" style="margin-bottom:0">
+              <div class="bl"><span class="who">reweave review-and-approve</span><span class="val c-green">30 s</span></div>
+              <div class="bar-track"><div class="bar-fill agent" data-w="2.5"></div></div>
+            </div>
+          </div>
+          <div class="times reveal" style="--d:.2s">
+            <div class="x">180×</div>
+            <p>less engineer time per fix — with a human still signing every deploy</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-inner">
+      <div class="foot-left">
+        <span class="logo" style="color:var(--text)"><span class="dot"></span>re<b>weave</b></span>
+        <p>Self-healing web data pipelines. Break the site — watch the agent stitch it back, and a human sign the seam.</p>
+        <p style="margin-top:14px;font-family:var(--mono);font-size:12px">MIT licensed · © 2026</p>
+      </div>
+      <div class="foot-right">
+        <a class="gh" href="https://github.com/vnmoorthy/reweave" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+          github.com/vnmoorthy/reweave
+        </a>
+        <div class="credits">
+          Built at the <b>Agent Harness Hackathon 2026</b><br>
+          with <b>TrueForge</b> · <b>Bright Data</b> · <b>Qodo</b>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-label="Enlarged screenshot"><img alt=""></div>
+
+<script>
+(function(){
+  'use strict';
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- scroll reveal ---------- */
+  var revealEls = document.querySelectorAll('.reveal');
+  if(!reduced && 'IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:0.12,rootMargin:'0px 0px -6% 0px'});
+    revealEls.forEach(function(el){ io.observe(el); });
+  }else{
+    revealEls.forEach(function(el){ el.classList.add('in'); });
+  }
+
+  /* ---------- terminal typing ---------- */
+  var term = document.getElementById('term');
+  if(term && !reduced){
+    var lineEls = Array.prototype.slice.call(term.querySelectorAll('.tl'));
+    var script = lineEls.map(function(line){
+      return Array.prototype.map.call(line.childNodes, function(n){
+        return { cls: (n.nodeType===1 ? n.className : ''), text: n.textContent };
+      });
+    });
+    var timer = null;
+    function typeAll(){
+      term.innerHTML = '';
+      var cursor = document.createElement('span');
+      cursor.className = 'cursor';
+      var li = 0;
+      function nextLine(){
+        if(li >= script.length){
+          term.appendChild(cursor);
+          timer = setTimeout(typeAll, 7000);
+          return;
+        }
+        var segs = script[li++];
+        var line = document.createElement('div');
+        line.className = 'tl';
+        term.appendChild(line);
+        var total = segs.reduce(function(a,s){return a+s.text.length;},0);
+        var speed = Math.max(5, Math.min(22, Math.round(950/Math.max(total,1))));
+        var si = 0, ci = 0, span = null;
+        function tick(){
+          if(si >= segs.length){
+            if(cursor.parentNode) cursor.parentNode.removeChild(cursor);
+            timer = setTimeout(nextLine, li===1 ? 120 : 240);
+            return;
+          }
+          if(ci === 0){
+            span = document.createElement('span');
+            if(segs[si].cls) span.className = segs[si].cls;
+            line.appendChild(span);
+            line.appendChild(cursor);
+          }
+          span.textContent += segs[si].text.charAt(ci++);
+          if(ci >= segs[si].text.length){ si++; ci = 0; }
+          timer = setTimeout(tick, speed);
+        }
+        tick();
+      }
+      nextLine();
+    }
+    var started = false;
+    if('IntersectionObserver' in window){
+      var tio = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+          if(e.isIntersecting && !started){ started = true; typeAll(); tio.disconnect(); }
+        });
+      },{threshold:0.3});
+      tio.observe(term);
+    }else{ typeAll(); }
+  }
+
+  /* ---------- count-up stats ---------- */
+  var counters = document.querySelectorAll('[data-count]');
+  function fmt(n, mode){
+    n = Math.round(n);
+    return mode === 'comma' ? n.toLocaleString('en-US') : String(n);
+  }
+  function runCount(el){
+    var target = parseFloat(el.getAttribute('data-count'));
+    var mode = el.getAttribute('data-format') || '';
+    if(reduced){ el.textContent = fmt(target, mode); return; }
+    var t0 = null, dur = 1400;
+    function step(ts){
+      if(!t0) t0 = ts;
+      var p = Math.min((ts - t0)/dur, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(target * eased, mode);
+      if(p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  if('IntersectionObserver' in window && !reduced){
+    var cio = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ runCount(e.target); cio.unobserve(e.target); }
+      });
+    },{threshold:0.5});
+    counters.forEach(function(el){ cio.observe(el); });
+  }else{
+    counters.forEach(function(el){ runCount(el); });
+  }
+
+  /* ---------- impact bars ---------- */
+  var bars = document.querySelectorAll('.bar-fill');
+  function fillBar(el){ el.style.width = el.getAttribute('data-w') + '%'; }
+  if('IntersectionObserver' in window && !reduced){
+    var bio = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ fillBar(e.target); bio.unobserve(e.target); }
+      });
+    },{threshold:0.5});
+    bars.forEach(function(el){ bio.observe(el); });
+  }else{
+    bars.forEach(fillBar);
+  }
+
+  /* ---------- pin <-> legend highlight ---------- */
+  document.querySelectorAll('.pin').forEach(function(pin){
+    var n = pin.getAttribute('data-n');
+    var lg = document.querySelector('.lg[data-n="'+n+'"]');
+    if(!lg) return;
+    pin.addEventListener('mouseenter', function(){ lg.classList.add('hl'); });
+    pin.addEventListener('mouseleave', function(){ lg.classList.remove('hl'); });
+  });
+
+  /* ---------- lightbox ---------- */
+  var lb = document.getElementById('lightbox');
+  var lbImg = lb ? lb.querySelector('img') : null;
+  document.querySelectorAll('img.zoomable').forEach(function(img){
+    img.addEventListener('click', function(){
+      if(!lb) return;
+      lbImg.src = img.src;
+      lbImg.alt = img.alt;
+      lb.classList.add('open');
+    });
+  });
+  if(lb){
+    lb.addEventListener('click', function(){ lb.classList.remove('open'); lbImg.src=''; });
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape') lb.classList.remove('open');
+    });
+  }
+})();
+</script>
+</body>
+</html>
