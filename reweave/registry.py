@@ -14,8 +14,9 @@ import json
 import os
 import sqlite3
 import time
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 from .models import ExtractionSpec, HealProposal, new_id
 
@@ -53,11 +54,17 @@ def db_path() -> Path:
     return p
 
 
-def _conn() -> sqlite3.Connection:
+@contextmanager
+def _conn() -> Iterator[sqlite3.Connection]:
+    """Commit-on-success, close-always connection scope."""
     conn = sqlite3.connect(db_path())
-    conn.row_factory = sqlite3.Row
-    conn.executescript(_SCHEMA)
-    return conn
+    try:
+        conn.row_factory = sqlite3.Row
+        conn.executescript(_SCHEMA)
+        with conn:  # transaction scope: commits, or rolls back on error
+            yield conn
+    finally:
+        conn.close()
 
 
 # -- kv ---------------------------------------------------------------------
