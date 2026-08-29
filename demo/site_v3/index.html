@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>nimbusmart — now with utility classes</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; background: #fafaf9; color: #111; }
+  .topbar { padding: 16px 28px; background: #111; color: #fafaf9; display: flex; gap: 16px; align-items: baseline; }
+  .topbar b { font-weight: 800; letter-spacing: 2px; text-transform: lowercase; }
+  .topbar i { font-size: 12px; color: #a8a29e; font-style: normal; }
+  ul.stack { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; padding: 26px 28px; max-width: 1140px; margin: 0 auto; }
+  .flex { display: flex; } .flex-col { flex-direction: column; } .gap-2 { gap: 8px; }
+  .rounded-xl { border-radius: 14px; } .border { border: 1px solid #e7e5e4; } .p-4 { padding: 16px; }
+  .bg-card { background: #fff; }
+  .swatch { height: 96px; border-radius: 10px; background: linear-gradient(120deg, #fde68a, #fca5a5); }
+  .text-lg { font-size: 15px; } .font-semibold { font-weight: 600; }
+  .font-mono { font-family: "SF Mono", Menlo, monospace; } .text-emerald { color: #059669; font-size: 17px; font-weight: 700; }
+  .chip { align-self: flex-start; font-size: 11px; background: #ecfdf5; color: #065f46; padding: 2px 8px; border-radius: 999px; }
+  .underline { text-decoration: underline; } .mt-2 { margin-top: 8px; font-size: 13px; color: #111; }
+</style>
+</head>
+<body>
+  <div class="topbar"><b>nimbusmart</b><i>v3 · rebuilt in a weekend with a css framework, obviously</i></div>
+  <ul class="stack">
+    <li class="flex flex-col gap-2 rounded-xl border p-4 bg-card"><div class="swatch"></div><p class="text-lg font-semibold">Aurora 27" 4K Monitor</p><span class="chip">Save $70</span><span class="font-mono text-emerald">$379.99</span><a class="mt-2 underline" href="/item/aurora-27-4k-monitor">details</a></li>
+    <li class="flex flex-col gap-2 rounded-xl border p-4 bg-card"><div class="swatch"></div><p class="text-lg font-semibold">Volt USB-C GaN Charger 100W</p><span class="font-mono text-emerald">$59.99</span><a class="mt-2 underline" href="/item/volt-usb-c-gan-charger">details</a></li>
+    <li class="flex flex-col gap-2 rounded-xl border p-4 bg-card"><div class="swatch"></div><p class="text-lg font-semibold">Drift Mechanical Keyboard TKL</p><span class="chip">Save $26</span><span class="font-mono text-emerald">$129.00</span><a class="mt-2 underline" href="/item/drift-mechanical-keyboard">details</a></li>
+    <li class="flex flex-col gap-2 rounded-xl border p-4 bg-card"><div class="swatch"></div><p class="text-lg font-semibold">Nimbus Cloud SSD 2TB</p><span class="font-mono text-emerald">$189.50</span><a class="mt-2 underline" href="/item/nimbus-cloud-ssd-2tb">details</a></li>
+    <li class="flex flex-col gap-2 rounded-xl border p-4 bg-card"><div class="swatch"></div><p class="text-lg font-semibold">Echo Studio Headphones ANC</p><span class="chip">Save $50</span><span class="font-mono text-emerald">$249.99</span><a class="mt-2 underline" href="/item/echo-studio-headphones">details</a></li>
+    <li class="flex flex-col gap-2 rounded-xl border p-4 bg-card"><div class="swatch"></div><p class="text-lg font-semibold">Pixelframe Webcam 4K60</p><span class="font-mono text-emerald">$149.95</span><a class="mt-2 underline" href="/item/pixelframe-webcam-4k60">details</a></li>
+    <li class="flex flex-col gap-2 rounded-xl border p-4 bg-card"><div class="swatch"></div><p class="text-lg font-semibold">Atlas Standing Desk Pro</p><span class="font-mono text-emerald">$549.00</span><a class="mt-2 underline" href="/item/atlas-standing-desk-pro">details</a></li>
+    <li class="flex flex-col gap-2 rounded-xl border p-4 bg-card"><div class="swatch"></div><p class="text-lg font-semibold">Lumen Smart Desk Lamp</p><span class="font-mono text-emerald">$79.99</span><a class="mt-2 underline" href="/item/lumen-smart-desk-lamp">details</a></li>
+  </ul>
+</body>
+</html>

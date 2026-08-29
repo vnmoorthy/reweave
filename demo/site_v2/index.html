@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NimbusMart 2.0 — The big redesign</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Georgia, "Times New Roman", serif; background: #0e1116; color: #e8e4da; }
+  nav { padding: 20px 36px; display: flex; justify-content: space-between; border-bottom: 1px solid #262c38; }
+  nav .wordmark { font-size: 24px; font-style: italic; color: #e8b44c; }
+  nav .promo { font-size: 13px; color: #9aa3b5; }
+  main.catalog { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px; padding: 30px 36px; max-width: 1220px; margin: 0 auto; }
+  article.tile { background: #161b24; border: 1px solid #262c38; border-radius: 4px; padding: 20px; position: relative; }
+  .tile__art { height: 120px; background: linear-gradient(160deg, #2b3242, #3d2b42); margin-bottom: 14px; }
+  .badge { position: absolute; top: 12px; right: 12px; background: #e8b44c; color: #17130a; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 2px; font-family: sans-serif; }
+  h2.tile__heading { font-size: 17px; font-weight: 500; line-height: 1.4; margin-bottom: 10px; }
+  .cost { display: flex; gap: 10px; align-items: baseline; margin-bottom: 12px; }
+  .cost__was { color: #6b7385; font-size: 13px; }
+  .cost__now { color: #7fd39a; font-size: 20px; font-family: "SF Mono", monospace; }
+  .meta { font-size: 12px; color: #9aa3b5; margin-bottom: 12px; }
+  a.tile__link { color: #e8b44c; font-size: 13px; text-decoration: none; font-family: sans-serif; }
+</style>
+</head>
+<body>
+  <nav><span class="wordmark">NimbusMart</span><span class="promo">SUMMER REFRESH — up to 25% off</span></nav>
+  <main class="catalog">
+    <article class="tile"><span class="badge">SALE</span><div class="tile__art"></div><h2 class="tile__heading"><span>Aurora</span> <span>27" 4K Monitor</span></h2><div class="cost"><s class="cost__was">$449.99</s><span class="cost__now">$379.99</span></div><p class="meta">★ 4.8 · 1,204 reviews</p><a class="tile__link" href="/products/aurora-27-4k-monitor">Shop now</a></article>
+    <article class="tile"><div class="tile__art"></div><h2 class="tile__heading"><span>Volt</span> <span>USB-C GaN Charger 100W</span></h2><div class="cost"><span class="cost__now">$59.99</span></div><p class="meta">★ 4.6 · 887 reviews</p><a class="tile__link" href="/products/volt-usb-c-gan-charger">Shop now</a></article>
+    <article class="tile"><span class="badge">HOT</span><div class="tile__art"></div><h2 class="tile__heading"><span>Drift</span> <span>Mechanical Keyboard TKL</span></h2><div class="cost"><s class="cost__was">$155.00</s><span class="cost__now">$129.00</span></div><p class="meta">★ 4.9 · 2,041 reviews</p><a class="tile__link" href="/products/drift-mechanical-keyboard">Shop now</a></article>
+    <article class="tile"><div class="tile__art"></div><h2 class="tile__heading"><span>Nimbus</span> <span>Cloud SSD 2TB</span></h2><div class="cost"><span class="cost__now">$189.50</span></div><p class="meta">★ 4.7 · 655 reviews</p><a class="tile__link" href="/products/nimbus-cloud-ssd-2tb">Shop now</a></article>
+    <article class="tile"><span class="badge">SALE</span><div class="tile__art"></div><h2 class="tile__heading"><span>Echo</span> <span>Studio Headphones ANC</span></h2><div class="cost"><s class="cost__was">$299.99</s><span class="cost__now">$249.99</span></div><p class="meta">★ 4.5 · 3,310 reviews</p><a class="tile__link" href="/products/echo-studio-headphones">Shop now</a></article>
+    <article class="tile"><div class="tile__art"></div><h2 class="tile__heading"><span>Pixelframe</span> <span>Webcam 4K60</span></h2><div class="cost"><span class="cost__now">$149.95</span></div><p class="meta">★ 4.4 · 512 reviews</p><a class="tile__link" href="/products/pixelframe-webcam-4k60">Shop now</a></article>
+    <article class="tile"><div class="tile__art"></div><h2 class="tile__heading"><span>Atlas</span> <span>Standing Desk Pro</span></h2><div class="cost"><span class="cost__now">$549.00</span></div><p class="meta">★ 4.8 · 1,742 reviews</p><a class="tile__link" href="/products/atlas-standing-desk-pro">Shop now</a></article>
+    <article class="tile"><span class="badge">NEW</span><div class="tile__art"></div><h2 class="tile__heading"><span>Lumen</span> <span>Smart Desk Lamp</span></h2><div class="cost"><span class="cost__now">$79.99</span></div><p class="meta">★ 4.3 · 208 reviews</p><a class="tile__link" href="/products/lumen-smart-desk-lamp">Shop now</a></article>
+    <article class="tile"><span class="badge">NEW</span><div class="tile__art"></div><h2 class="tile__heading"><span>Orbit</span> <span>Wireless Trackball</span></h2><div class="cost"><span class="cost__now">$89.99</span></div><p class="meta">★ 4.2 · 97 reviews</p><a class="tile__link" href="/products/orbit-wireless-trackball">Shop now</a></article>
+  </main>
+</body>
+</html>

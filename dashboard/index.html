@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reweave · mission control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07090d; --panel: #0d1117; --panel2: #10161f; --line: #1c2430;
+    --text: #dbe4f0; --dim: #6b7789; --faint: #3d4756;
+    --cyan: #39d3e6; --green: #3ddc84; --amber: #ffb454; --red: #ff5c69;
+    --violet: #b18cff; --blue: #6ea8ff;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    --sans: "Inter", -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ---------- top bar ---------- */
+  header { display: flex; align-items: center; gap: 20px; padding: 0 20px; height: 58px; border-bottom: 1px solid var(--line); background: var(--panel); flex: none; }
+  .logo { font-family: var(--mono); font-weight: 700; font-size: 17px; letter-spacing: 0.5px; }
+  .logo b { color: var(--cyan); }
+  .logo span { color: var(--dim); font-weight: 400; font-size: 11px; margin-left: 8px; }
+  .tickers { display: flex; gap: 26px; margin-left: 10px; }
+  .ticker { display: flex; flex-direction: column; }
+  .ticker .v { font-family: var(--mono); font-size: 17px; font-weight: 700; color: var(--green); line-height: 1.1; }
+  .ticker .k { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); }
+  .spacer { flex: 1; }
+  button { font-family: var(--sans); font-weight: 600; font-size: 13px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); padding: 8px 14px; cursor: pointer; transition: all .15s; }
+  button:hover { border-color: var(--dim); transform: translateY(-1px); }
+  button.primary { background: #0e3a44; border-color: #1d6b7a; color: var(--cyan); }
+  button.danger  { background: #3a1216; border-color: #7a2730; color: var(--red); }
+  button.approve { background: #0e3a24; border-color: #1d7a4b; color: var(--green); }
+  button:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+  /* ---------- layout ---------- */
+  main { flex: 1; display: grid; grid-template-columns: 280px 1fr 430px; min-height: 0; }
+  .col { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .col:last-child { border-right: none; }
+  h2 { font-size: 10px; text-transform: uppercase; letter-spacing: 1.6px; color: var(--dim); padding: 12px 16px 8px; flex: none; }
+
+  /* fleet */
+  .fleet { padding: 0 12px 12px; overflow-y: auto; }
+  .src { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .src .name { font-weight: 600; font-size: 13px; margin-bottom: 8px; }
+  .row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--dim); margin-top: 4px; }
+  .pill { font-family: var(--mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 3px 9px; border-radius: 999px; }
+  .pill.healthy { color: var(--green); background: #0e3a2444; border: 1px solid #1d7a4b66; }
+  .pill.broken  { color: var(--red); background: #3a121644; border: 1px solid #7a273066; animation: pulse 1.2s infinite; }
+  .pill.unknown { color: var(--dim); background: var(--panel2); border: 1px solid var(--line); }
+  @keyframes pulse { 50% { opacity: .55; } }
+  .projection { margin: 4px 12px; padding: 12px 14px; border: 1px dashed var(--faint); border-radius: 10px; font-size: 11px; color: var(--dim); line-height: 1.7; }
+  .projection b { color: var(--amber); font-family: var(--mono); }
+
+  /* stream */
+  .stream { flex: 1; overflow-y: auto; padding: 4px 16px 16px; font-family: var(--mono); font-size: 12px; line-height: 1.9; }
+  .ev { display: flex; gap: 10px; align-items: baseline; }
+  .ev .t { color: var(--faint); flex: none; font-size: 10.5px; }
+  .ev .dot { flex: none; width: 7px; height: 7px; border-radius: 50%; position: relative; top: -1px; }
+  .ev .m { color: var(--text); opacity: .92; word-break: break-word; }
+  .ev.lvl-run .dot { background: var(--cyan); } .ev.lvl-run .m { color: #9fb6cc; }
+  .ev.lvl-drift .dot { background: var(--amber); } .ev.lvl-drift .m { color: var(--amber); }
+  .ev.lvl-heal .dot { background: var(--violet); } .ev.lvl-heal .m { color: var(--violet); }
+  .ev.lvl-gate .dot { background: var(--blue); } .ev.lvl-gate .m { color: var(--blue); }
+  .ev.lvl-deploy .dot { background: var(--green); } .ev.lvl-deploy .m { color: var(--green); }
+  .ev.lvl-chaos .dot { background: var(--red); } .ev.lvl-chaos .m { color: var(--red); }
+  .ev.lvl-escalate .dot { background: var(--red); } .ev.lvl-escalate .m { color: var(--red); font-weight: 700; }
+  .ev.lvl-system .dot { background: var(--faint); } .ev.lvl-system .m { color: var(--dim); }
+
+  /* gate */
+  .gate { flex: 1; overflow-y: auto; padding: 0 16px 16px; }
+  .quiet { color: var(--faint); font-size: 13px; padding: 30px 10px; text-align: center; line-height: 1.8; }
+  .proposal { background: var(--panel); border: 1px solid #7a273066; border-radius: 12px; padding: 16px; }
+  .proposal.ok { border-color: var(--line); }
+  .php { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .php .id { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+  .php .conf { font-family: var(--mono); font-weight: 700; color: var(--green); }
+  .ver { font-size: 12px; color: var(--dim); margin-bottom: 12px; }
+  .ver b { color: var(--text); font-family: var(--mono); }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 12px; }
+  th { text-align: left; color: var(--dim); font-size: 9.5px; text-transform: uppercase; letter-spacing: 1px; padding: 5px 6px; border-bottom: 1px solid var(--line); }
+  td { padding: 6px; border-bottom: 1px solid #141b26; font-family: var(--mono); vertical-align: top; }
+  td.f { color: var(--text); font-weight: 700; }
+  td .old { color: var(--red); text-decoration: line-through; opacity: .75; display: block; }
+  td .new { color: var(--green); display: block; }
+  .bar { height: 4px; border-radius: 2px; background: var(--panel2); margin-top: 5px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--green); }
+  .evidence { font-size: 11.5px; color: var(--dim); line-height: 1.7; margin-bottom: 12px; }
+  .evidence code { color: var(--cyan); font-family: var(--mono); font-size: 10.5px; }
+  .actions { display: flex; gap: 8px; align-items: center; }
+  .actions input { flex: 1; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 8px 10px; font-size: 12px; font-family: var(--sans); }
+  .samples td { color: var(--dim); font-family: var(--sans); font-size: 11px; }
+  .samples td:nth-child(2) { color: var(--green); font-family: var(--mono); }
+
+  /* target site */
+  .site { flex: none; height: 250px; border-top: 1px solid var(--line); display: flex; flex-direction: column; background: var(--panel); }
+  .site .head { display: flex; align-items: center; gap: 12px; padding: 8px 16px; }
+  .site .head .url { font-family: var(--mono); font-size: 11px; color: var(--dim); background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 12px; }
+  .site .head .era { font-family: var(--mono); font-size: 10px; color: var(--amber); }
+  iframe { flex: 1; border: none; background: #fff; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo"><b>re</b>weave<span>self-healing web data · mission control</span></div>
+    <div class="tickers">
+      <div class="ticker"><span class="v" id="t-heals">0</span><span class="k">heals deployed</span></div>
+      <div class="ticker"><span class="v" id="t-min">0</span><span class="k">engineer-min saved</span></div>
+      <div class="ticker"><span class="v" id="t-usd">$0</span><span class="k">toil recovered</span></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="primary" id="btn-run">▶ Run pipeline</button>
+    <button class="danger" id="btn-chaos">⚡ Ship redesign</button>
+    <button id="btn-reset">Reset</button>
+  </header>
+
+  <main>
+    <section class="col">
+      <h2>Fleet</h2>
+      <div class="fleet" id="fleet"></div>
+      <div class="projection" id="projection"></div>
+    </section>
+    <section class="col">
+      <h2>Agent event stream</h2>
+      <div class="stream" id="stream"></div>
+    </section>
+    <section class="col">
+      <h2>Approval gate</h2>
+      <div class="gate" id="gate"></div>
+    </section>
+  </main>
+
+  <section class="site">
+    <div class="head">
+      <span class="url">demo://nimbusmart</span>
+      <span class="era" id="era"></span>
+      <div class="spacer"></div>
+    </div>
+    <iframe id="target" src="/demo-site"></iframe>
+  </section>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  let lastVariant = null, lastEventId = 0, busy = false;
+
+  async function api(path, opts) {
+    const r = await fetch(path, opts);
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+
+  function fmtTime(ts) {
+    return new Date(ts * 1000).toLocaleTimeString([], {hour12: false});
+  }
+
+  function renderFleet(sources) {
+    $("fleet").innerHTML = sources.map(s => `
+      <div class="src">
+        <div class="name">${esc(s.name)}</div>
+        <div class="row"><span>status</span><span class="pill ${esc(s.status)}">${esc(s.status)}</span></div>
+        <div class="row"><span>active spec</span><span style="font-family:var(--mono)">v${s.active_version}</span></div>
+        <div class="row"><span>golden records</span><span style="font-family:var(--mono)">${s.golden.length}</span></div>
+        <div class="row"><span>last checked</span><span>${s.last_checked ? fmtTime(s.last_checked) : "—"}</span></div>
+      </div>`).join("");
+  }
+
+  function renderProjection(p) {
+    $("projection").innerHTML =
+      `At a 50-scraper fleet &amp; the community's 10–15%/wk break rate:<br>` +
+      `<b>${p.expected_breaks_per_year}</b> breaks/yr → <b>${p.engineer_hours_per_year}h</b> ` +
+      `of selector surgery → <b>$${Number(p.dollars_per_year).toLocaleString()}</b>/yr of toil this loop absorbs.`;
+  }
+
+  function renderStream(events) {
+    const el = $("stream");
+    el.innerHTML = events.slice().reverse().map(e => `
+      <div class="ev lvl-${esc(e.level)}">
+        <span class="t">${fmtTime(e.ts)}</span><span class="dot"></span>
+        <span class="m">${esc(e.message)}</span>
+      </div>`).join("");
+    const newest = events.length ? events[0].id : 0;
+    if (newest !== lastEventId) { el.scrollTop = el.scrollHeight; lastEventId = newest; }
+  }
+
+  let gateKey = null;
+  function renderGate(pending) {
+    // Re-render only on real changes — a poll must never wipe the operator's typing.
+    const key = JSON.stringify(pending.map(p => [p.id, p.status]));
+    if (key === gateKey) return;
+    gateKey = key;
+    if (!pending.length) {
+      $("gate").innerHTML = `<div class="quiet">No repairs awaiting approval.<br>The loom is quiet.</div>`;
+      return;
+    }
+    $("gate").innerHTML = pending.map(p => {
+      const v = p.validation;
+      return `
+      <div class="proposal">
+        <div class="php"><span class="id">${esc(p.id)}</span>
+          <span class="conf">${Math.round(v.confidence * 100)}% validated</span></div>
+        <div class="ver">deploy spec <b>v${p.base_version}</b> → <b>v${p.new_spec.version}</b> · synthesized from ${p.new_spec.fields.length} golden-anchored fields</div>
+        <table><tr><th>field</th><th>selector</th><th style="width:64px">match</th></tr>
+          ${p.diffs.map(d => `<tr>
+            <td class="f">${esc(d.name)}</td>
+            <td><span class="old">${esc(d.old_selector)}</span><span class="new">${esc(d.new_selector)}</span></td>
+            <td>${Math.round(d.match_rate * 100)}%<div class="bar"><i style="width:${d.match_rate * 100}%"></i></div></td>
+          </tr>`).join("")}
+        </table>
+        <div class="evidence">${p.evidence.map(e => esc(e).replace(/`([^`]+)`/g, "<code>$1</code>")).join("<br>")}</div>
+        <table class="samples"><tr><th>extracted title</th><th>price</th></tr>
+          ${p.sample_rows.slice(0, 4).map(r => `<tr><td>${esc(r.title)}</td><td>$${Number(r.price).toFixed(2)}</td></tr>`).join("")}
+        </table>
+        <div class="actions">
+          <input id="actor-${esc(p.id)}" placeholder="your name (accountability)" value="">
+          <button class="approve" onclick="decide('${esc(p.id)}','approve')">✓ Approve deploy</button>
+          <button class="danger" onclick="decide('${esc(p.id)}','reject')">✗</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  async function decide(pid, action) {
+    const actor = ($(`actor-${pid}`)?.value || "").trim();
+    if (!actor) { $(`actor-${pid}`).style.borderColor = "var(--red)"; $(`actor-${pid}`).placeholder = "name required — approvals are accountable"; return; }
+    await api(`/api/heal/${pid}/${action}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({actor})});
+    if (action === "approve") await api("/api/run/nimbusmart", {method: "POST"});
+    refresh();
+  }
+
+  async function refresh() {
+    try {
+      const s = await api("/api/state");
+      renderFleet(s.sources);
+      renderProjection(s.fleet_projection);
+      renderStream(s.events);
+      renderGate(s.pending);
+      $("t-heals").textContent = s.impact.heals;
+      $("t-min").textContent = Math.round(s.impact.engineer_minutes_saved);
+      $("t-usd").textContent = "$" + Number(s.impact.dollars_saved).toLocaleString();
+      $("era").textContent = "structural era: " + s.demo_variant;
+      if (s.demo_variant !== lastVariant) { $("target").src = "/demo-site?t=" + Date.now(); lastVariant = s.demo_variant; }
+    } catch (e) { /* server restarting; retry next tick */ }
+  }
+
+  $("btn-run").onclick = async () => {
+    if (busy) return; busy = true; $("btn-run").disabled = true;
+    try { await api("/api/run/nimbusmart", {method: "POST"}); } finally { busy = false; $("btn-run").disabled = false; }
+    refresh();
+  };
+  $("btn-chaos").onclick = async () => { await api("/api/chaos", {method: "POST"}); refresh(); };
+  $("btn-reset").onclick = async () => { await api("/api/reset", {method: "POST"}); lastVariant = null; refresh(); };
+
+  refresh();
+  setInterval(refresh, 1500);
+</script>
+</body>
+</html>

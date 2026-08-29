@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.reweave/
+*.db
+.env
+.venv/
+venv/
+.pytest_cache/
+.DS_Store
+node_modules/
+assets/raw/

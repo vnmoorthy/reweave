@@ -1,0 +1,20 @@
+{
+  "$comment": "TrueForge MCP server registration for Reweave. Drop into your TrueForge agent config. The harness-level approval gate is configured on the tools Reweave annotates as destructive, so a human approves every deploy from inside the TrueForge UI — in addition to Reweave's own gate.",
+  "mcpServers": {
+    "reweave": {
+      "command": "reweave",
+      "args": ["mcp"],
+      "transport": "stdio"
+    }
+  },
+  "approvalPolicy": {
+    "reweave": {
+      "approve_heal": "always_ask",
+      "reject_heal": "always_ask",
+      "run_pipeline": "auto",
+      "list_sources": "auto",
+      "list_pending_heals": "auto",
+      "impact_report": "auto"
+    }
+  }
+}
