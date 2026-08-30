@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reweave</title>
-<meta name="description" content="Reweave — self-healing web data pipelines. An autonomous repair agent that detects structural drift, synthesizes repaired selectors anchored to golden records, and holds every fix for a named human to approve.">
+<meta name="description" content="Reweave — self-healing web data pipelines. Onboard sources from a URL and a few golden examples — zero selectors written. An autonomous repair agent detects structural drift, synthesizes repaired selectors anchored to golden records, and holds every fix for a named human to approve.">
 <meta property="og:title" content="Reweave — self-healing web data pipelines">
-<meta property="og:description" content="Break the site. Watch the agent stitch it back. Sentinel detects drift, Surgeon synthesizes the repair, Gate holds it for a named human. Exposed as an MCP server.">
+<meta property="og:description" content="Break the site. Watch the agent stitch it back. Zero-selector onboarding, Sentinel drift detection, Surgeon repair synthesis, and a human-approved Gate. Exposed as an MCP server.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://vnmoorthy.github.io/reweave/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='90'%3E%F0%9F%A7%B5%3C/text%3E%3C/svg%3E">
@@ -254,8 +254,25 @@
     padding:22px 26px;display:flex;gap:18px;align-items:flex-start;
   }
   .infra .k{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);flex-shrink:0;padding-top:3px;min-width:96px}
-  .infra p{font-size:14px;color:var(--muted);line-height:1.65}
+  .infra p{font-size:14px;color:var(--muted);line-height:1.65;min-width:0}
+  @media(max-width:640px){.infra{flex-direction:column;gap:10px}.infra .k{min-width:0}}
   .infra p b{color:var(--text);font-weight:600}
+
+  /* ---------- onboarding ---------- */
+  .onb-chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+  .chipx{font-family:var(--mono);font-size:11.5px;color:var(--muted);border:1px solid var(--line-strong);border-radius:8px;padding:6px 12px;background:rgba(13,17,23,.6)}
+  .chipx b{color:var(--cyan);font-weight:600;margin-right:8px}
+  .onb-grid{display:grid;grid-template-columns:1.04fr .96fr;gap:18px;margin-top:34px;align-items:stretch}
+  .onb-grid>*{min-width:0}
+  @media(max-width:900px){.onb-grid{grid-template-columns:1fr}}
+  .term.compact .term-body{min-height:0;line-height:2.05}
+  .onb-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:28px 26px;display:flex;flex-direction:column}
+  .onb-card h3{font-size:17px;font-weight:700;letter-spacing:-.01em;margin-bottom:10px}
+  .onb-card>p{font-size:13.5px;color:var(--muted);line-height:1.7}
+  .onb-card p b{color:var(--text);font-weight:600}
+  .onb-card code,.infra code{font-family:var(--mono);font-size:12px;color:var(--cyan);background:rgba(57,211,230,.08);padding:1px 5px;border-radius:4px;white-space:nowrap}
+  .snippet{margin-top:auto;padding:16px 18px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;font-family:var(--mono);font-size:12px;line-height:1.95;overflow-x:auto;white-space:pre;color:var(--muted)}
+  .snippet .dim{color:var(--faint)}
 
   /* ---------- demo ---------- */
   .step-label{
@@ -297,6 +314,7 @@
   .era-note em{color:var(--green);font-style:normal}
 
   .annotated{position:relative}
+  .pinwrap{position:relative}
   .pin{
     position:absolute;width:26px;height:26px;border-radius:50%;
     background:rgba(7,9,13,.85);border:1.5px solid var(--cyan);color:var(--cyan);
@@ -420,6 +438,7 @@
     <div class="nav-links">
       <a href="#pain">The pain</a>
       <a href="#how">How it works</a>
+      <a href="#onboard">Onboarding</a>
       <a href="#demo">Live demo</a>
       <a href="#safety">Safety</a>
       <a href="#impact">Impact</a>
@@ -441,10 +460,11 @@
           <div class="hero-badge reveal"><span class="b-dot"></span>autonomous repair agent · exposed as an MCP server</div>
           <h1 class="reveal" style="--d:.06s">Break the site.<br><span class="stitch">Watch the agent stitch it back.</span></h1>
           <p class="hero-sub reveal" style="--d:.12s">
-            Reweave is a self-healing layer for web data pipelines. When a target site redesign breaks
-            extraction, the <strong>Sentinel</strong> detects structural drift, the <strong>Surgeon</strong>
-            synthesizes repaired selectors anchored to known-true facts, and the <strong>Gate</strong> holds
-            the fix until a named human approves — before a single bad row ships.
+            Reweave is a self-healing layer for web data pipelines — and <strong>you never write a selector</strong>.
+            Paste a URL and a few golden examples and the <strong>Surgeon</strong> synthesizes the extraction
+            spec; when a redesign breaks it, the <strong>Sentinel</strong> detects the drift, the Surgeon
+            repairs it, and the <strong>Gate</strong> holds every fix until a named human approves — before
+            a single bad row ships.
           </p>
           <div class="hero-ctas reveal" style="--d:.18s">
             <a class="btn btn-primary" href="https://github.com/vnmoorthy/reweave" target="_blank" rel="noopener">
@@ -454,6 +474,7 @@
             <a class="btn btn-ghost" href="#how">See the loop ↓</a>
           </div>
           <div class="hero-meta reveal" style="--d:.24s">
+            <span>zero-selector onboarding</span>
             <span>golden-record validation</span>
             <span>human-approved deploys</span>
             <span>MCP-native</span>
@@ -548,6 +569,7 @@
             <li><b>Re-anchors</b> golden values ("$379.99", "Aurora 27&quot; 4K Monitor") in the new DOM</li>
             <li><b>Generalizes</b> the shared structural signature across all matches</li>
             <li><b>Validates every candidate</b> against all golden records before proposing</li>
+            <li><b>Bootstraps new sources</b> the same way — onboarding is a heal from zero</li>
           </ul>
         </div>
         <div class="role reveal" style="--rc:var(--green);--d:.2s">
@@ -646,7 +668,93 @@
         </div>
         <div class="infra reveal" style="--d:.1s">
           <span class="k">agent layer</span>
-          <p>Reweave is an <b>MCP server</b>: the <b>TrueForge</b> agent harness drives detection and repair as tools, with harness-level approval gates layered on top of Reweave's own Gate.</p>
+          <p>Reweave is an <b>MCP server</b> — nine tools, from <code>add_source</code> to gated deploys. The <b>TrueForge</b> agent harness drives onboarding, detection, and repair, with harness-level approval gates layered on top of Reweave's own Gate.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ONBOARDING ============ -->
+  <section id="onboard">
+    <div class="wrap">
+      <div class="eyebrow reveal">zero-selector onboarding</div>
+      <h2 class="reveal" style="--d:.05s">From zero to healing. You never write a selector.</h2>
+      <p class="section-sub reveal" style="--d:.1s">
+        Onboarding is the same record-anchored machinery as healing, pointed at day one. Paste a URL and
+        two or more <b style="color:var(--text)">golden examples</b> — records you can see on the page —
+        and the Surgeon synthesizes and validates the extraction spec itself.
+      </p>
+      <div class="onb-chips reveal" style="--d:.15s">
+        <span class="chipx"><b>dashboard</b>＋ Add source</span>
+        <span class="chipx"><b>cli</b>reweave add</span>
+        <span class="chipx"><b>api</b>POST /api/sources</span>
+        <span class="chipx"><b>mcp</b>add_source</span>
+      </div>
+
+      <div class="onb-grid">
+        <div class="term compact reveal">
+          <div class="term-bar">
+            <span class="tb r"></span><span class="tb y"></span><span class="tb g"></span>
+            <span class="title">reweave add · live web, real run</span>
+          </div>
+          <div class="term-body">
+            <div class="tl"><span class="good">$ </span><span class="d">reweave add https://books.toscrape.com</span></div>
+            <div class="tl"><span class="t">  </span><span class="d">…3 golden examples pasted (title · price · url)</span></div>
+            <div class="tl"><span class="good">✓ </span><span class="d">anchored 3/3 examples in the live DOM</span></div>
+            <div class="tl"><span class="good">✓ </span><span class="d">container  </span><span class="ok">article.product_pod</span><span class="d"> — most specific covering every card</span></div>
+            <div class="tl"><span class="good">✓ </span><span class="d">title      </span><span class="ok">img.thumbnail@alt</span><span class="d"> — </span><span class="warn">attribute anchor</span></div>
+            <div class="tl"><span class="good">✓ </span><span class="d">price      </span><span class="ok">p.price_color</span></div>
+            <div class="tl"><span class="good">✓ </span><span class="good">spec v1 validated: 20 rows · confidence 100%</span></div>
+            <div class="tl"><span class="t">  </span><span class="d">selectors written by a human: 0</span></div>
+          </div>
+        </div>
+
+        <div class="onb-card reveal" style="--d:.1s">
+          <h3>Anchors in text — or in attributes</h3>
+          <p>
+            Real catalogs truncate what you can see: the page shows <b>“A Light in the …”</b> while the full
+            value lives in a <code>title=</code> or <code>alt=</code> attribute. Synthesis anchors your examples
+            in node text <b>or</b> attributes, groups candidates by <b>(tag, attribute) shape</b>, and picks the
+            most specific container selector that covers every anchored card — so a few examples generalize
+            to the whole page.
+          </p>
+          <div class="snippet">&lt;article class=<span class="c-green">"product_pod"</span>&gt;
+  <span class="dim">&lt;!-- full value lives in the attribute --&gt;</span>
+  &lt;img class=<span class="c-green">"thumbnail"</span> alt=<span class="c-green">"A Light in the Attic"</span>&gt;
+  <span class="dim">&lt;!-- visible text is truncated --&gt;</span>
+  &lt;a title=<span class="c-green">"A Light in the Attic"</span>&gt;A Light in the …&lt;/a&gt;
+  &lt;p class=<span class="c-green">"price_color"</span>&gt;£51.77&lt;/p&gt;
+&lt;/article&gt;</div>
+        </div>
+      </div>
+
+      <div class="reveal" style="margin-top:26px">
+        <div class="shot annotated">
+          <div class="shot-bar"><span class="tb r"></span><span class="tb y"></span><span class="tb g"></span><span class="url">reweave · mission control — live source onboarded</span></div>
+          <div class="pinwrap">
+            <img class="zoomable" src="assets/dashboard-live-source.png" alt="Reweave mission control with a live source onboarded from three golden examples: Books catalog healthy at 20 rows and 100% confidence, autopilot toggle on, and the event stream reading spec v1 bootstrapped from 3 golden examples — no selectors written" loading="lazy" width="1600" height="1000">
+            <span class="pin" data-n="o1" style="left:8.7%;top:10.8%">1</span>
+            <span class="pin" data-n="o2" style="left:45%;top:13.5%">2</span>
+            <span class="pin" data-n="o3" style="left:8.7%;top:21.5%">3</span>
+            <span class="pin" data-n="o4" style="left:74%;top:3.2%">4</span>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="lg" data-n="o1"><span class="n">1</span><p><b>The zero-selector front door.</b> ＋ Add source takes a URL and 2+ golden examples — the same call as <code>reweave add</code>, <code>POST /api/sources</code>, or the <code>add_source</code> MCP tool.</p></div>
+          <div class="lg" data-n="o2"><span class="n">2</span><p><b>The Surgeon bootstraps the spec.</b> "spec v1 bootstrapped from 3 golden examples (3 fields, validation confidence 100%) — no selectors written."</p></div>
+          <div class="lg" data-n="o3"><span class="n">3</span><p><b>A real site, live.</b> books.toscrape.com healthy on its synthesized spec — 20 rows at 100% confidence, every run's rows stored and browsable in the data drawer.</p></div>
+          <div class="lg" data-n="o4"><span class="n">4</span><p><b>Autopilot, always on.</b> Every source re-checked on a 60-second cadence. Detection and synthesis never sleep — deploys still wait at the Gate.</p></div>
+        </div>
+      </div>
+
+      <div class="infra-strip">
+        <div class="infra reveal">
+          <span class="k">data out</span>
+          <p>Every run's rows are stored — the <b>last 20 runs per source</b> — browsable in the dashboard's data drawer and exportable as CSV or JSON: <code>/api/sources/{id}/rows?fmt=csv</code>, <code>reweave export</code>, or the <code>get_rows</code> MCP tool.</p>
+        </div>
+        <div class="infra reveal" style="--d:.1s">
+          <span class="k">autopilot</span>
+          <p><b>Continuous background monitoring</b> of every source — 60 s default, one dashboard toggle. Detection and repair synthesis run around the clock; <b>deploys still wait for a named human</b> at the gate.</p>
         </div>
       </div>
     </div>
@@ -701,13 +809,15 @@
         </p>
         <div class="shot annotated">
           <div class="shot-bar"><span class="tb r"></span><span class="tb y"></span><span class="tb g"></span><span class="url">reweave · mission control</span></div>
-          <img class="zoomable" src="assets/dashboard-gate.png" alt="Reweave mission control: fleet panel marked BROKEN, agent event stream showing drift detection and repair synthesis, and the approval gate with selector diffs, re-extracted data, and an Approve deploy button" width="1600" height="1000">
-          <span class="pin" data-n="1" style="left:8.7%;top:16%">1</span>
-          <span class="pin" data-n="2" style="left:45%;top:26%">2</span>
-          <span class="pin" data-n="3" style="left:80%;top:16.5%">3</span>
-          <span class="pin" data-n="4" style="left:86.5%;top:33%">4</span>
-          <span class="pin" data-n="5" style="left:86.5%;top:64%">5</span>
-          <span class="pin" data-n="6" style="left:86.5%;top:74%">6</span>
+          <div class="pinwrap">
+            <img class="zoomable" src="assets/dashboard-gate.png" alt="Reweave mission control: fleet panel marked BROKEN, agent event stream showing drift detection and repair synthesis, and the approval gate with selector diffs, re-extracted data, and an Approve deploy button" width="1600" height="1000">
+            <span class="pin" data-n="1" style="left:8.7%;top:11%">1</span>
+            <span class="pin" data-n="2" style="left:45%;top:22%">2</span>
+            <span class="pin" data-n="3" style="left:80%;top:14%">3</span>
+            <span class="pin" data-n="4" style="left:86.5%;top:29%">4</span>
+            <span class="pin" data-n="5" style="left:86.5%;top:61%">5</span>
+            <span class="pin" data-n="6" style="left:86.5%;top:70.5%">6</span>
+          </div>
         </div>
         <div class="legend">
           <div class="lg" data-n="1"><span class="n">1</span><p><b>Fleet status flips to BROKEN.</b> NimbusMart's pipeline is pinned to spec v1 with 8 golden records on file — the ground truth the whole loop runs on.</p></div>
@@ -834,7 +944,7 @@
       <div class="foot-left">
         <span class="logo" style="color:var(--text)"><span class="dot"></span>re<b>weave</b></span>
         <p>Self-healing web data pipelines. Break the site — watch the agent stitch it back, and a human sign the seam.</p>
-        <p style="margin-top:14px;font-family:var(--mono);font-size:12px">MIT licensed · © 2026</p>
+        <p style="margin-top:14px;font-family:var(--mono);font-size:12px">MIT licensed · v0.2.0 · © 2026</p>
       </div>
       <div class="foot-right">
         <a class="gh" href="https://github.com/vnmoorthy/reweave" target="_blank" rel="noopener">
@@ -843,7 +953,8 @@
         </a>
         <div class="credits">
           Built at the <b>Agent Harness Hackathon 2026</b><br>
-          with <b>TrueForge</b> · <b>Bright Data</b> · <b>Qodo</b>
+          with <b>TrueForge</b> · <b>Bright Data</b> · <b>Qodo</b><br>
+          releases <b>v0.1.0 → v0.2.0</b> · 9 MCP tools · 20 tests green
         </div>
       </div>
     </div>
