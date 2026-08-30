@@ -24,7 +24,7 @@ human needs to approve or reject the deploy in one glance.
 from __future__ import annotations
 
 import re
-from typing import Any, Iterable
+from typing import Any
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
@@ -54,7 +54,7 @@ def _text_of(node: Tag) -> str:
 def _deepest(nodes: list[Tag]) -> list[Tag]:
     """Drop any node that has a descendant also present in the list."""
     out = []
-    node_set = set(id(n) for n in nodes)
+    node_set = {id(n) for n in nodes}
     for n in nodes:
         if not any(id(d) in node_set for d in n.find_all(True)):
             out.append(n)
@@ -199,9 +199,10 @@ def _validated_item_selector(
             found = soup.select(cand)
         except Exception:
             continue
-        if len(cards) <= len(found) <= max(expected * 3, len(cards) + 4):
-            if all(any(f is c for f in found) for c in cards):
-                return cand
+        if len(cards) <= len(found) <= max(expected * 3, len(cards) + 4) and all(
+            any(f is c for f in found) for c in cards
+        ):
+            return cand
     return None
 
 

@@ -18,5 +18,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install
         run: pip install -e ".[dev]"
+      - name: Lint
+        run: python -m ruff check .
       - name: Test (full healing lifecycle E2E included)
         run: python -m pytest -q

@@ -1,0 +1,26 @@
+name: ✨ Feature request
+description: A new synthesis strategy, gate policy, integration, or surface
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What toil or risk does this remove? Real numbers welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: invariants
+    attributes:
+      label: Design invariants
+      description: Features that break these need an ADR first (see docs/adr/).
+      options:
+        - label: This keeps the extractor deterministic (intelligence stays in the Surgeon)
+        - label: This deploys nothing without an accountable approval
+        - label: New synthesis candidates still pass golden-record validation

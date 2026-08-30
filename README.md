@@ -6,7 +6,9 @@
 *Break the site. Watch the agent stitch it back.*
 
 [![CI](https://github.com/vnmoorthy/reweave/actions/workflows/ci.yml/badge.svg)](https://github.com/vnmoorthy/reweave/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/vnmoorthy/reweave?color=3ddc84)](https://github.com/vnmoorthy/reweave/releases)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)](https://www.python.org/)
+[![Lint: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![MCP Server](https://img.shields.io/badge/MCP-server-39d3e6)](docs/architecture.md#mcp-surface)
 [![Built on TrueForge](https://img.shields.io/badge/harness-TrueForge-b18cff)](https://github.com/truefoundry/trueforge)
@@ -14,12 +16,14 @@
 
 [Website](https://vnmoorthy.github.io/reweave/) ·
 [Architecture](docs/architecture.md) ·
+[ADRs](docs/adr) ·
 [Healing protocol](docs/architecture.md#the-healing-protocol) ·
-[Demo in 90 seconds](#-the-90-second-demo)
+[Demo in 90 seconds](#-the-90-second-demo) ·
+[Changelog](CHANGELOG.md)
 
-<img src="docs/assets/dashboard-gate.png" alt="Reweave mission control — a synthesized repair waiting at the human approval gate" width="920">
+<img src="docs/assets/demo.gif" alt="The full healing loop: healthy pipeline → site redesign ships → drift detected → repair synthesized → human approves at the gate → healthy again on the new spec — twice" width="920">
 
-<sub>*A repair the agent synthesized and validated by itself, waiting at the approval gate. No selector was written by a human.*</sub>
+<sub>*One unedited loop, twice: the site redesigns, the agent synthesizes a validated repair, a human approves it at the gate, the pipeline goes green — then the site redesigns **again** and the healed spec heals again. No selector was written by a human.*</sub>
 
 </div>
 
@@ -72,6 +76,12 @@ reweave chaos            # the target site ships a redesign 💥
 reweave run nimbusmart   # drift detected → repair synthesized → parked at the gate
 ```
 
+Or point it at the real web right now (no API keys needed):
+
+```bash
+python examples/real_source.py   # monitors live books.toscrape.com — 20 rows, 100% confidence
+```
+
 ## 🎬 The 90-second demo
 
 The repo ships with a breakable storefront (three complete front-end "eras" of the same site). In the dashboard:
@@ -87,6 +97,9 @@ The repo ships with a breakable storefront (three complete front-end "eras" of t
 <div align="center">
 <img src="docs/assets/site-v1.png" alt="Target site, seed era" width="44%"> <img src="docs/assets/site-v2.png" alt="Target site after the redesign" width="44%">
 <br><sub>*The same store, before and after the chaos button. Titles, prices and links survive; every selector dies.*</sub>
+<br><br>
+<img src="docs/assets/dashboard-gate.png" alt="The approval gate: before/after selector diffs, per-field match rates, sample rows, accountable approve" width="920">
+<br><sub>*The gate, up close: per-field `old → new` selector diffs, validation match rates, extracted sample rows — and an approval that requires a name.*</sub>
 </div>
 
 ## 🛡️ Safety model
@@ -136,11 +149,20 @@ reweave/
 │   └── harness/mcp_server.py# dependency-free MCP stdio server
 ├── dashboard/               # single-file mission control UI
 ├── demo/                    # the breakable storefront (3 structural eras) + golden records
+├── examples/                # real_source.py — monitor live books.toscrape.com
 ├── skills/reweave-operator/ # TrueForge SKILL.md instruction pack
 ├── harness/                 # TrueForge MCP registration + approval policy
 ├── tests/                   # 13 tests incl. full-lifecycle E2E
-└── docs/architecture.md     # deep dive: components, protocol, trust boundaries
+└── docs/                    # architecture deep dive + ADRs + assets
 ```
+
+## 🤔 How is this different from…
+
+**…an LLM that rewrites my scraper?** LLM output is a *candidate source*, not the mechanism ([ADR-0001](docs/adr/0001-record-anchored-selector-synthesis.md)). Reweave's primary repair path is deterministic golden-record anchoring — explainable, token-free, offline-capable — and *every* candidate, LLM or synthesized, must reproduce your known-true data before it can even become a proposal. A hallucinated selector structurally cannot reach production.
+
+**…auto-healing scraper SaaS?** Two differences: the **approval gate is the product**, not a checkbox — full before/after diffs, accountable actors, an append-only audit ledger, one-move rollback ([ADR-0002](docs/adr/0002-two-layer-approval-gate.md), [ADR-0003](docs/adr/0003-immutable-spec-versions.md)); and it's **MIT-licensed infrastructure you run yourself**, exposed as an MCP server any agent harness can drive.
+
+**…retrying with better selectors written by hand?** That's the treadmill. The point is that the *fix itself* is synthesized, validated, and versioned — the human's job shrinks from "spend 90 minutes in devtools" to "read a diff and click approve."
 
 ## 🗺️ Roadmap
 

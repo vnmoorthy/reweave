@@ -35,7 +35,7 @@ class FieldSpec:
         return asdict(self)
 
     @staticmethod
-    def from_dict(d: dict[str, Any]) -> "FieldSpec":
+    def from_dict(d: dict[str, Any]) -> FieldSpec:
         return FieldSpec(**d)
 
 
@@ -62,7 +62,7 @@ class ExtractionSpec:
         }
 
     @staticmethod
-    def from_dict(d: dict[str, Any]) -> "ExtractionSpec":
+    def from_dict(d: dict[str, Any]) -> ExtractionSpec:
         return ExtractionSpec(
             item_selector=d["item_selector"],
             fields=[FieldSpec.from_dict(f) for f in d["fields"]],

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Questions & ideas
+    url: https://github.com/vnmoorthy/reweave/discussions
+    about: Ask anything — how to add a source, synthesis strategies, fleet mode.
+  - name: 🔒 Security reports
+    url: https://github.com/vnmoorthy/reweave/blob/main/SECURITY.md
+    about: Please report vulnerabilities privately per the security policy.

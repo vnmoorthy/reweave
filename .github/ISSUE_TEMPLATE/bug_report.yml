@@ -1,0 +1,45 @@
+name: 🐛 Bug report
+description: Something broke — a pipeline, a heal, the gate, the dashboard
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The audit trail usually tells the story — please include it.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what did Reweave do instead?
+    validations:
+      required: true
+  - type: textarea
+    id: events
+    attributes:
+      label: Event stream / audit log
+      description: Relevant lines from the dashboard event stream or `events` table (they're append-only for exactly this reason).
+      render: text
+  - type: dropdown
+    id: area
+    attributes:
+      label: Subsystem
+      options:
+        - Sentinel (drift detection)
+        - Surgeon (selector synthesis)
+        - Gate (approvals)
+        - Fetch (Bright Data / direct)
+        - MCP server / TrueForge integration
+        - Dashboard
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      placeholder: v0.1.0 or a commit SHA
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Smallest HTML + spec + golden records that reproduce it, if you have them. (This is exactly the shape of our test fixtures — see `tests/conftest.py`.)

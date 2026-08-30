@@ -14,9 +14,10 @@ import json
 import os
 import sqlite3
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from .models import ExtractionSpec, HealProposal, new_id
 
