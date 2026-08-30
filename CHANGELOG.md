@@ -4,6 +4,29 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [SemVer](https://semver.org/).
 
+## [0.2.0] — 2026-08-29
+
+From demo to product: sources in, data out, watching around the clock.
+
+### Added
+- **Zero-selector onboarding** (`POST /api/sources`, `reweave add`, MCP
+  `add_source`, dashboard "＋ Add source"): provide a URL and 2+ golden
+  example records; the Surgeon bootstraps the extraction spec with the same
+  record-anchored synthesis it uses to heal. Verified against the live web.
+- **Attribute anchoring** — golden values are found in node text *or*
+  attributes (`title=`, `alt=`), with per-shape candidate groups; handles
+  real catalogs that truncate visible text. Item-container selection now
+  picks the most specific selector covering all anchored cards, so a few
+  examples generalize to a full page.
+- **Stored runs & export** — every run's rows are recorded (last 20 per
+  source), browsable in the dashboard data drawer, exportable as CSV/JSON
+  (`/api/sources/{id}/rows`, `reweave export`, MCP `get_rows`).
+- **Autopilot** — continuous background monitoring of all sources
+  (`REWEAVE_WATCH_INTERVAL`, default 60s) with a dashboard toggle; deploys
+  still require a human at the gate.
+- Source removal, run history endpoint, per-source run buttons; 7 new tests
+  (20 total).
+
 ## [0.1.0] — 2026-08-29
 
 The one-day build (Agent Harness Hackathon, SF).
@@ -27,4 +50,5 @@ The one-day build (Agent Harness Hackathon, SF).
   deploy → impact) and repeat-healing across redesigns.
 - CI (Python 3.10–3.12), product website (GitHub Pages), 10-slide deck.
 
+[0.2.0]: https://github.com/vnmoorthy/reweave/releases/tag/v0.2.0
 [0.1.0]: https://github.com/vnmoorthy/reweave/releases/tag/v0.1.0

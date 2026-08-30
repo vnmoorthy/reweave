@@ -80,6 +80,34 @@ TOOLS: list[dict[str, Any]] = [
         "annotations": {"destructiveHint": True},
     },
     {
+        "name": "add_source",
+        "description": (
+            "Onboard a new source with ZERO selectors: provide a url and 2+ golden "
+            "example records visible on the page; the Surgeon synthesizes and "
+            "validates the extraction spec from the examples."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "url": {"type": "string"},
+                "name": {"type": "string"},
+                "golden": {"type": "array", "items": {"type": "object"}},
+            },
+            "required": ["url", "golden"],
+        },
+        "annotations": {"destructiveHint": False},
+    },
+    {
+        "name": "get_rows",
+        "description": "The latest extracted rows for a source (the actual data).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"source_id": {"type": "string"}},
+            "required": ["source_id"],
+        },
+        "annotations": {"readOnlyHint": True},
+    },
+    {
         "name": "impact_report",
         "description": "Totals of approved heals and the engineer-time/dollar impact ledger.",
         "inputSchema": {"type": "object", "properties": {}},
@@ -107,6 +135,17 @@ def _call_tool(name: str, args: dict[str, Any]) -> Any:
         return gate.approve(args["proposal_id"], args["actor"])
     if name == "reject_heal":
         return gate.reject(args["proposal_id"], args["actor"], args.get("reason", ""))
+    if name == "add_source":
+        from .. import server
+
+        payload = {"url": args["url"], "name": args.get("name", ""), "golden": args["golden"]}
+        resp = server.add_source(payload)
+        return json.loads(bytes(resp.body))
+    if name == "get_rows":
+        run = registry.latest_run(args["source_id"])
+        if run is None:
+            raise KeyError(f"no runs recorded for {args['source_id']}")
+        return run
     if name == "impact_report":
         return {
             "totals": registry.impact_totals(),

@@ -94,6 +94,34 @@
   .samples td { color: var(--dim); font-family: var(--sans); font-size: 11px; }
   .samples td:nth-child(2) { color: var(--green); font-family: var(--mono); }
 
+  /* autopilot switch */
+  .ap { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--dim); cursor: pointer; user-select: none; }
+  .ap .sw { width: 34px; height: 18px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); position: relative; transition: all .2s; }
+  .ap .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--dim); transition: all .2s; }
+  .ap.on .sw { background: #0e3a24; border-color: #1d7a4b; }
+  .ap.on .sw::after { left: 18px; background: var(--green); }
+  .ap.on { color: var(--green); }
+
+  /* source card actions */
+  .src .acts { display: flex; gap: 6px; margin-top: 10px; }
+  .src .acts button, .src .acts a { font-size: 10.5px; padding: 4px 8px; border-radius: 6px; text-decoration: none; color: var(--dim); border: 1px solid var(--line); background: var(--panel2); cursor: pointer; }
+  .src .acts button:hover, .src .acts a:hover { color: var(--text); border-color: var(--dim); transform: none; }
+  .src .acts .del:hover { color: var(--red); border-color: #7a2730; }
+  .addsrc { width: calc(100% - 0px); margin-bottom: 10px; border-style: dashed; color: var(--dim); }
+
+  /* modal */
+  .overlay { position: fixed; inset: 0; background: #05070aa8; backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; z-index: 50; }
+  .overlay.open { display: flex; }
+  .modal { width: min(680px, 92vw); max-height: 86vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .modal h3 { font-size: 15px; margin-bottom: 4px; }
+  .modal .sub { font-size: 12px; color: var(--dim); margin-bottom: 14px; line-height: 1.6; }
+  .modal label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); margin: 10px 0 4px; }
+  .modal input[type=text], .modal textarea { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 9px 11px; font-size: 12.5px; font-family: var(--mono); }
+  .modal textarea { min-height: 130px; resize: vertical; }
+  .modal .mrow { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  .modal .err { color: var(--red); font-size: 12px; margin-top: 10px; white-space: pre-wrap; display: none; }
+  .modal table { margin-top: 6px; }
+
   /* target site */
   .site { flex: none; height: 250px; border-top: 1px solid var(--line); display: flex; flex-direction: column; background: var(--panel); }
   .site .head { display: flex; align-items: center; gap: 12px; padding: 8px 16px; }
@@ -111,10 +139,47 @@
       <div class="ticker"><span class="v" id="t-usd">$0</span><span class="k">toil recovered</span></div>
     </div>
     <div class="spacer"></div>
-    <button class="primary" id="btn-run">▶ Run pipeline</button>
+    <div class="ap" id="ap"><span class="sw"></span><span id="ap-label">autopilot</span></div>
+    <button class="primary" id="btn-run">▶ Run all</button>
     <button class="danger" id="btn-chaos">⚡ Ship redesign</button>
     <button id="btn-reset">Reset</button>
   </header>
+
+  <div class="overlay" id="add-overlay">
+    <div class="modal">
+      <h3>Add a source — no selectors needed</h3>
+      <div class="sub">Paste a URL and 2+ <b>golden examples</b>: records you can see on the page right now
+        (titles verbatim; prices as numbers). The Surgeon synthesizes and validates the extraction
+        spec from your examples — the same machinery it uses to heal.</div>
+      <label>name</label>
+      <input type="text" id="ns-name" placeholder="Competitor catalog">
+      <label>url</label>
+      <input type="text" id="ns-url" placeholder="https://example-store.com/catalog">
+      <label>golden examples (json)</label>
+      <textarea id="ns-golden">[
+  {"title": "A product title exactly as shown", "price": 19.99, "url": "/p/its-link"},
+  {"title": "Another visible product", "price": 49.00, "url": "/p/another-link"}
+]</textarea>
+      <div class="err" id="ns-err"></div>
+      <div class="mrow">
+        <button onclick="closeModals()">Cancel</button>
+        <button class="approve" id="ns-submit" onclick="submitSource()">⚡ Synthesize &amp; onboard</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="data-overlay">
+    <div class="modal">
+      <h3 id="data-title">Latest data</h3>
+      <div class="sub" id="data-meta"></div>
+      <div id="data-table" style="overflow-x:auto"></div>
+      <div class="mrow">
+        <a id="data-csv" href="#" download><button>⬇ CSV</button></a>
+        <a id="data-json" href="#" target="_blank"><button>⬇ JSON</button></a>
+        <button onclick="closeModals()">Close</button>
+      </div>
+    </div>
+  </div>
 
   <main>
     <section class="col">
@@ -156,15 +221,66 @@
     return new Date(ts * 1000).toLocaleTimeString([], {hour12: false});
   }
 
+  let sourceIds = [];
   function renderFleet(sources) {
-    $("fleet").innerHTML = sources.map(s => `
+    sourceIds = sources.map(s => s.id);
+    $("fleet").innerHTML =
+      `<button class="addsrc" onclick="openAdd()">＋ Add source (zero selectors)</button>` +
+      sources.map(s => `
       <div class="src">
         <div class="name">${esc(s.name)}</div>
         <div class="row"><span>status</span><span class="pill ${esc(s.status)}">${esc(s.status)}</span></div>
-        <div class="row"><span>active spec</span><span style="font-family:var(--mono)">v${s.active_version}</span></div>
-        <div class="row"><span>golden records</span><span style="font-family:var(--mono)">${s.golden.length}</span></div>
-        <div class="row"><span>last checked</span><span>${s.last_checked ? fmtTime(s.last_checked) : "—"}</span></div>
+        <div class="row"><span>active spec</span><span style="font-family:var(--mono)">v${s.active_version} <span style="color:var(--faint)">· ${esc(s.golden.length)} golden</span></span></div>
+        <div class="row"><span>latest run</span><span style="font-family:var(--mono)">${s.latest_run ? `${s.latest_run.row_count} rows · ${Math.round(s.latest_run.confidence * 100)}%` : "—"}</span></div>
+        <div class="row"><span>via</span><span style="font-family:var(--mono)">${s.latest_run ? esc(s.latest_run.provenance) : "—"} ${s.last_checked ? "· " + fmtTime(s.last_checked) : ""}</span></div>
+        <div class="acts">
+          <button onclick="runOne('${esc(s.id)}')">▶ run</button>
+          <button onclick="showData('${esc(s.id)}')">☰ data</button>
+          <button class="del" onclick="removeSource('${esc(s.id)}')">✕</button>
+        </div>
       </div>`).join("");
+  }
+
+  function openAdd() { $("add-overlay").classList.add("open"); }
+  function closeModals() { document.querySelectorAll(".overlay").forEach(o => o.classList.remove("open")); $("ns-err").style.display = "none"; }
+  document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if (e.target === o) closeModals(); }));
+
+  async function submitSource() {
+    const err = $("ns-err");
+    err.style.display = "none";
+    let golden;
+    try { golden = JSON.parse($("ns-golden").value); }
+    catch (e) { err.textContent = "golden examples: " + e.message; err.style.display = "block"; return; }
+    $("ns-submit").disabled = true; $("ns-submit").textContent = "synthesizing…";
+    try {
+      const r = await fetch("/api/sources", {method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({name: $("ns-name").value, url: $("ns-url").value, golden})});
+      const body = await r.json();
+      if (!r.ok) throw new Error(body.detail || r.statusText);
+      closeModals(); refresh();
+    } catch (e) { err.textContent = String(e.message || e); err.style.display = "block"; }
+    finally { $("ns-submit").disabled = false; $("ns-submit").textContent = "⚡ Synthesize & onboard"; }
+  }
+
+  async function runOne(sid) { await api(`/api/run/${sid}`, {method: "POST"}).catch(() => {}); refresh(); }
+
+  async function removeSource(sid) {
+    if (!confirm(`Remove source '${sid}' and its run history?`)) return;
+    await api(`/api/sources/${sid}`, {method: "DELETE"}); refresh();
+  }
+
+  async function showData(sid) {
+    let d;
+    try { d = await api(`/api/sources/${sid}/rows`); }
+    catch (e) { alert("No runs recorded yet — hit ▶ run first."); return; }
+    $("data-title").textContent = `Latest data · ${sid}`;
+    $("data-meta").textContent = `${d.row_count} rows · confidence ${Math.round(d.confidence * 100)}% · via ${d.provenance} · ${fmtTime(d.ts)}`;
+    const cols = d.rows.length ? Object.keys(d.rows[0]) : [];
+    $("data-table").innerHTML = `<table><tr>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr>` +
+      d.rows.map(r => `<tr>${cols.map(c => `<td>${esc(r[c])}</td>`).join("")}</tr>`).join("") + `</table>`;
+    $("data-csv").href = `/api/sources/${sid}/rows?fmt=csv`;
+    $("data-json").href = `/api/sources/${sid}/rows`;
+    $("data-overlay").classList.add("open");
   }
 
   function renderProjection(p) {
@@ -214,7 +330,7 @@
           ${p.sample_rows.slice(0, 4).map(r => `<tr><td>${esc(r.title)}</td><td>$${Number(r.price).toFixed(2)}</td></tr>`).join("")}
         </table>
         <div class="actions">
-          <input id="actor-${esc(p.id)}" placeholder="your name (accountability)" value="">
+          <input id="actor-${esc(p.id)}" data-sid="${esc(p.source_id)}" placeholder="your name (accountability)" value="">
           <button class="approve" onclick="decide('${esc(p.id)}','approve')">✓ Approve deploy</button>
           <button class="danger" onclick="decide('${esc(p.id)}','reject')">✗</button>
         </div>
@@ -225,8 +341,9 @@
   async function decide(pid, action) {
     const actor = ($(`actor-${pid}`)?.value || "").trim();
     if (!actor) { $(`actor-${pid}`).style.borderColor = "var(--red)"; $(`actor-${pid}`).placeholder = "name required — approvals are accountable"; return; }
+    const sid = document.querySelector(`#actor-${pid}`)?.dataset.sid;
     await api(`/api/heal/${pid}/${action}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({actor})});
-    if (action === "approve") await api("/api/run/nimbusmart", {method: "POST"});
+    if (action === "approve" && sid) await api(`/api/run/${sid}`, {method: "POST"});
     refresh();
   }
 
@@ -240,6 +357,9 @@
       $("t-heals").textContent = s.impact.heals;
       $("t-min").textContent = Math.round(s.impact.engineer_minutes_saved);
       $("t-usd").textContent = "$" + Number(s.impact.dollars_saved).toLocaleString();
+      $("ap").classList.toggle("on", !!(s.autopilot && s.autopilot.enabled));
+      $("ap-label").textContent = s.autopilot && s.autopilot.enabled
+        ? `autopilot · ${Math.round(s.autopilot.interval_s)}s` : "autopilot paused";
       $("era").textContent = "structural era: " + s.demo_variant;
       if (s.demo_variant !== lastVariant) { $("target").src = "/demo-site?t=" + Date.now(); lastVariant = s.demo_variant; }
     } catch (e) { /* server restarting; retry next tick */ }
@@ -247,11 +367,17 @@
 
   $("btn-run").onclick = async () => {
     if (busy) return; busy = true; $("btn-run").disabled = true;
-    try { await api("/api/run/nimbusmart", {method: "POST"}); } finally { busy = false; $("btn-run").disabled = false; }
+    try { for (const sid of sourceIds) await api(`/api/run/${sid}`, {method: "POST"}).catch(() => {}); }
+    finally { busy = false; $("btn-run").disabled = false; }
     refresh();
   };
   $("btn-chaos").onclick = async () => { await api("/api/chaos", {method: "POST"}); refresh(); };
-  $("btn-reset").onclick = async () => { await api("/api/reset", {method: "POST"}); lastVariant = null; refresh(); };
+  $("btn-reset").onclick = async () => { await api("/api/reset", {method: "POST"}); lastVariant = null; gateKey = null; refresh(); };
+  $("ap").onclick = async () => {
+    const on = $("ap").classList.contains("on");
+    await api("/api/autopilot", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({enabled: !on})});
+    refresh();
+  };
 
   refresh();
   setInterval(refresh, 1500);

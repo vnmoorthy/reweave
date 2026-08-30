@@ -46,7 +46,13 @@ CREATE TABLE IF NOT EXISTS heals (
     id TEXT PRIMARY KEY, source_id TEXT, ts REAL,
     minutes_saved REAL, dollars_saved REAL, approved_by TEXT
 );
+CREATE TABLE IF NOT EXISTS runs (
+    id TEXT PRIMARY KEY, source_id TEXT, ts REAL, row_count INTEGER,
+    healthy INTEGER, confidence REAL, provenance TEXT, rows TEXT
+);
 """
+
+RUNS_KEPT_PER_SOURCE = 20
 
 
 def db_path() -> Path:
@@ -242,6 +248,66 @@ def list_incidents(source_id: str | None = None) -> list[dict[str, Any]]:
         args = (source_id,)
     with _conn() as c:
         return [dict(r) for r in c.execute(q + " ORDER BY opened_at DESC", args)]
+
+
+# -- runs (the data itself) -------------------------------------------------
+
+def record_run(
+    source_id: str,
+    rows: list[dict[str, Any]],
+    healthy: bool,
+    confidence: float,
+    provenance: str,
+) -> None:
+    with _conn() as c:
+        c.execute(
+            "INSERT INTO runs(id,source_id,ts,row_count,healthy,confidence,provenance,rows) "
+            "VALUES(?,?,?,?,?,?,?,?)",
+            (
+                new_id("run"),
+                source_id,
+                time.time(),
+                len(rows),
+                int(healthy),
+                confidence,
+                provenance,
+                json.dumps(rows),
+            ),
+        )
+        c.execute(
+            "DELETE FROM runs WHERE source_id=? AND id NOT IN "
+            "(SELECT id FROM runs WHERE source_id=? ORDER BY ts DESC LIMIT ?)",
+            (source_id, source_id, RUNS_KEPT_PER_SOURCE),
+        )
+
+
+def latest_run(source_id: str) -> dict[str, Any] | None:
+    with _conn() as c:
+        row = c.execute(
+            "SELECT * FROM runs WHERE source_id=? ORDER BY ts DESC LIMIT 1", (source_id,)
+        ).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        d["rows"] = json.loads(d["rows"] or "[]")
+        d["healthy"] = bool(d["healthy"])
+        return d
+
+
+def run_history(source_id: str, limit: int = 20) -> list[dict[str, Any]]:
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT id, ts, row_count, healthy, confidence, provenance FROM runs "
+            "WHERE source_id=? ORDER BY ts DESC LIMIT ?",
+            (source_id, limit),
+        ).fetchall()
+        return [dict(r) | {"healthy": bool(r["healthy"])} for r in rows]
+
+
+def remove_source(source_id: str) -> None:
+    with _conn() as c:
+        for table in ("sources", "specs", "proposals", "incidents", "runs"):
+            c.execute(f"DELETE FROM {table} WHERE {'id' if table == 'sources' else 'source_id'}=?", (source_id,))
 
 
 # -- events & impact --------------------------------------------------------

@@ -36,6 +36,7 @@ def run_source(source_id: str) -> dict[str, Any]:
     rows = extract(html, spec, base_url=src["url"])
     report = sentinel.assess(source_id, rows, spec, src["golden"])
 
+    registry.record_run(source_id, rows, report.healthy, report.confidence, provenance)
     registry.log_event(
         source_id,
         "run",

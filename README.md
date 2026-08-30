@@ -76,11 +76,48 @@ reweave chaos            # the target site ships a redesign 💥
 reweave run nimbusmart   # drift detected → repair synthesized → parked at the gate
 ```
 
-Or point it at the real web right now (no API keys needed):
+## ✨ Zero selectors, ever — even on day one
+
+Onboarding uses the same synthesis machinery as healing. You never write a
+selector: paste a URL plus **2+ golden examples** (records you can literally
+see on the page), and the Surgeon derives and validates the extraction spec
+from your examples — then keeps it healed forever:
 
 ```bash
-python examples/real_source.py   # monitors live books.toscrape.com — 20 rows, 100% confidence
+curl -X POST localhost:8321/api/sources -H 'Content-Type: application/json' -d '{
+  "name": "Books catalog (live web)",
+  "url": "http://books.toscrape.com/",
+  "golden": [
+    {"title": "A Light in the Attic",  "price": 51.77, "url": "a-light-in-the-attic_1000/index.html"},
+    {"title": "Tipping the Velvet",    "price": 53.74, "url": "tipping-the-velvet_999/index.html"},
+    {"title": "Sharp Objects",         "price": 47.82, "url": "sharp-objects_997/index.html"}
+  ]}'
+# → spec v1 synthesized (article.product_pod / img.thumbnail@alt / p.price_color)
+# → first run: 20 rows, 100% confidence — from 3 pasted examples
 ```
+
+The synthesis handles the real web's mess: it anchors values in node *text*
+or in *attributes* (that catalog truncates long titles to "A Light in the …"
+and carries the full title in `title=`/`alt=` — Reweave figures that out and
+validates it against your examples). Same thing from the dashboard's
+**＋ Add source** button, or `reweave add <url> --golden examples.json`.
+
+**And the data actually flows:** every run's rows are stored (last 20 runs
+per source), browsable in the dashboard's data drawer, and exportable:
+
+```bash
+curl "localhost:8321/api/sources/<source-id>/rows?fmt=csv" > rows.csv
+reweave export <source-id> --csv
+```
+
+**Autopilot** monitors every source continuously in the background
+(`REWEAVE_WATCH_INTERVAL`, default 60s) — detection and repair-synthesis run
+around the clock; deploys still wait for a human at the gate.
+
+<div align="center">
+<img src="docs/assets/dashboard-live-source.png" alt="A live source onboarded from 3 golden examples: 20 rows at 100% confidence, zero selectors written" width="920">
+<br><sub>*A real site onboarded from 3 pasted examples: spec v1 synthesized, 20 rows extracted, autopilot watching.*</sub>
+</div>
 
 ## 🎬 The 90-second demo
 

@@ -61,14 +61,33 @@ def _deepest(nodes: list[Tag]) -> list[Tag]:
     return out
 
 
+def find_text_nodes(root: Tag, value: str) -> list[tuple[Tag, str | None]]:
+    """Anchor a golden text value: as node text first, then as an attribute.
+
+    Attribute fallback matters on real sites — e.g. catalogs that truncate the
+    visible link text ("A Light in the ...") but carry the full title in the
+    anchor's ``title`` attribute. Returns (node, attr) pairs; attr None means
+    the value lives in the node's text.
+    """
+    want = norm_text(value)
+    hits = [n for n in root.find_all(True) if norm_text(_text_of(n)) == want]
+    out: list[tuple[Tag, str | None]] = [(n, None) for n in _deepest(hits)]
+    # Attribute hits are collected even when text hits exist: on real catalogs
+    # a *short* title matches as link text while a *long* one is truncated and
+    # only matches via `title=`/`alt=` — the shape that generalizes across all
+    # records may be the attribute one, so every shape must get its vote.
+    for n in root.find_all(True):
+        for k, v in n.attrs.items():
+            if isinstance(v, list):
+                v = " ".join(v)
+            if isinstance(v, str) and norm_text(v) == want:
+                out.append((n, k))
+                break
+    return out
+
+
 def find_title_nodes(root: Tag, title: str) -> list[Tag]:
-    want = norm_text(title)
-    hits = [
-        n
-        for n in root.find_all(True)
-        if norm_text(_text_of(n)) == want
-    ]
-    return _deepest(hits)
+    return [n for n, _ in find_text_nodes(root, title)]
 
 
 def find_price_nodes(root: Tag, price: float) -> list[Tag]:
@@ -191,32 +210,42 @@ def _anchor_records(
     return anchored
 
 
-def _validated_item_selector(
-    soup: BeautifulSoup, cards: list[Tag], expected: int
-) -> str | None:
+def _validated_item_selector(soup: BeautifulSoup, cards: list[Tag]) -> str | None:
+    """Most specific candidate that still covers every anchored card.
+
+    Golden examples may be a small sample of a much longer page (bootstrap
+    with 3 examples on a 20-item catalog), so the match count must not be
+    capped relative to the golden set — specificity, not count, is the
+    criterion. The full-spec Sentinel self-test downstream still rejects any
+    selector that drags in junk rows.
+    """
+    best: tuple[int, str] | None = None
     for cand in _shared_signature_selectors(cards):
         try:
             found = soup.select(cand)
         except Exception:
             continue
-        if len(cards) <= len(found) <= max(expected * 3, len(cards) + 4) and all(
-            any(f is c for f in found) for c in cards
+        if len(found) > 1000:  # pathologically generic (e.g. bare `div` on a huge page)
+            continue
+        if all(any(f is c for f in found) for c in cards) and (
+            best is None or len(found) < best[0]
         ):
-            return cand
-    return None
+            best = (len(found), cand)
+    return best[1] if best else None
 
 
 def _field_nodes_for_record(
     card: Tag, rec: dict[str, Any], fspec: FieldSpec
-) -> list[Tag]:
+) -> list[tuple[Tag, str | None]]:
+    """Locate a record's field value inside its card as (node, attr) pairs."""
     val = rec.get(fspec.name)
     if val is None:
         return []
     if fspec.kind == "price":
-        return find_price_nodes(card, float(val))
+        return [(n, None) for n in find_price_nodes(card, float(val))]
     if fspec.kind == "url":
-        return find_url_nodes(card, str(val))
-    return find_title_nodes(card, str(val))
+        return [(n, "href") for n in find_url_nodes(card, str(val))]
+    return find_text_nodes(card, str(val))
 
 
 def _validate_field(
@@ -248,30 +277,85 @@ def synthesize_field(
     cards_with_recs: list[tuple[dict[str, Any], Tag]], fspec: FieldSpec
 ) -> tuple[str, str | None, float, str] | None:
     """Return (selector, attr, match_rate, strategy) or None."""
-    per_record_nodes: list[Tag] = []
-    usable: list[tuple[dict[str, Any], Tag]] = []
+    # A value can live in different node shapes across cards (text in one,
+    # an img `alt` or link `title` attribute in another). Group every located
+    # (tag, attr) shape, then synthesize + validate per group and keep the
+    # best-scoring survivor — the messy real web decides, not the first hit.
+    groups: dict[tuple[str, str | None], list[Tag]] = {}
+    located_records = 0
     for rec, card in cards_with_recs:
-        nodes = _field_nodes_for_record(card, rec, fspec)
-        if nodes:
-            per_record_nodes.append(nodes[0])
-            usable.append((rec, card))
-    if len(usable) < max(2, int(0.5 * len(cards_with_recs))):
+        located = _field_nodes_for_record(card, rec, fspec)
+        if located:
+            located_records += 1
+        for node, attr_hit in located:
+            key = (node.name, attr_hit)
+            bucket = groups.setdefault(key, [])
+            if not any(b is node for b in bucket):
+                bucket.append(node)
+    min_coverage = max(2, int(0.5 * len(cards_with_recs)))
+    if located_records < min_coverage:
         return None
 
-    attr = "href" if fspec.kind == "url" else None
-    candidates = _shared_signature_selectors(per_record_nodes)
-
-    best: tuple[float, float, str] | None = None  # (match, stability, selector)
-    for cand in candidates:
-        rate = _validate_field(cards_with_recs, fspec.name, cand, attr, fspec.kind)
-        if rate < MIN_FIELD_MATCH:
+    best: tuple[float, float, str, str | None] | None = None  # match, stability, sel, attr
+    for (_, attr), nodes in groups.items():
+        if len(nodes) < min_coverage:
             continue
-        key = (rate, _score_selector(cand), cand)
-        if best is None or key > best:
-            best = key
+        for cand in _shared_signature_selectors(nodes):
+            rate = _validate_field(cards_with_recs, fspec.name, cand, attr, fspec.kind)
+            if rate < MIN_FIELD_MATCH:
+                continue
+            key = (rate, _score_selector(cand), cand, attr)
+            if best is None or key[:2] > best[:2]:
+                best = key
     if best is None:
         return None
-    return best[2], attr, best[0], "record-anchored synthesis"
+    return best[2], best[3], best[0], "record-anchored synthesis"
+
+
+def infer_field_kind(name: str, value: Any) -> str:
+    """Guess a field's kind from a golden example (bootstrap only)."""
+    if name == "price" or isinstance(value, (int, float)):
+        return "price"
+    if name in ("url", "link", "href") or (
+        isinstance(value, str) and (value.startswith("/") or "://" in value)
+    ):
+        return "url"
+    return "text"
+
+
+def bootstrap_spec(
+    html: str,
+    golden: list[dict[str, Any]],
+    source_id: str,
+    base_url: str = "",
+) -> HealProposal | None:
+    """Synthesize a source's very first spec from golden examples alone.
+
+    Onboarding is the same machinery as healing: the user supplies a handful
+    of known-true records (what they can see on the page), and the Surgeon
+    derives validated selectors for them. Nobody ever writes a selector —
+    not even on day one.
+    """
+    if len(golden) < 2:
+        return None
+    sample = golden[0]
+    fields = [
+        FieldSpec(
+            name=k,
+            selector="(bootstrap)",
+            attr="href" if infer_field_kind(k, v) == "url" else None,
+            kind=infer_field_kind(k, v),
+        )
+        for k, v in sample.items()
+    ]
+    anchor = next((f.name for f in fields if f.kind == "text"), None)
+    if anchor is None:
+        return None
+    stub = ExtractionSpec(item_selector="(bootstrap)", fields=fields, version=0, origin="stub")
+    proposal = propose_heal(html, stub, golden, source_id, base_url, anchor_field=anchor)
+    if proposal is not None:
+        proposal.new_spec.origin = "bootstrap"
+    return proposal
 
 
 def propose_heal(
@@ -291,7 +375,7 @@ def propose_heal(
     cards = [card for _, _, card in anchored]
     cards_with_recs = [(rec, card) for rec, _, card in anchored]
 
-    item_selector = _validated_item_selector(soup, cards, expected=len(golden))
+    item_selector = _validated_item_selector(soup, cards)
     if item_selector is None:
         return None
 
