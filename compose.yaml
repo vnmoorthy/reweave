@@ -1,0 +1,20 @@
+services:
+  reweave:
+    build: .
+    image: reweave:latest
+    container_name: reweave
+    ports:
+      - "8321:8321"
+    volumes:
+      - reweave-data:/data
+    restart: unless-stopped
+    environment:
+      # Bare names pass the variable through from the host shell (or .env)
+      # only when it is set; unset variables stay unset in the container.
+      - BRIGHTDATA_API_KEY
+      - BRIGHTDATA_ZONE
+      - REWEAVE_WATCH_INTERVAL
+      - REWEAVE_API_TOKEN
+
+volumes:
+  reweave-data:

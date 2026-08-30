@@ -19,19 +19,25 @@ import io
 import json
 import os
 import re
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 
-from . import demo, impact, pipeline, registry, watch
+from . import __version__, demo, impact, notify, pipeline, registry, watch
 from .fetch import fetch
 from .models import ExtractionSpec, FieldSpec
 from .surgeon import bootstrap_spec
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DASHBOARD = REPO_ROOT / "dashboard" / "index.html"
+STARTED_AT = time.time()
+
+# Paths that stay open when REWEAVE_API_TOKEN is set: the dashboard itself,
+# the demo target, health for load balancers, and metrics for scrapers.
+_AUTH_EXEMPT = ("/", "/demo-site", "/api/health", "/metrics")
 
 
 @asynccontextmanager
@@ -42,7 +48,22 @@ async def _lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="reweave", version="0.1.0", lifespan=_lifespan)
+app = FastAPI(title="reweave", version=__version__, lifespan=_lifespan)
+
+
+@app.middleware("http")
+async def _bearer_auth(request: Request, call_next):
+    """Optional API protection: set REWEAVE_API_TOKEN to require
+    `Authorization: Bearer <token>` on every /api/ route (health exempt)."""
+    token = os.environ.get("REWEAVE_API_TOKEN")
+    if (
+        token
+        and request.url.path.startswith("/api/")
+        and request.url.path not in _AUTH_EXEMPT
+        and request.headers.get("authorization") != f"Bearer {token}"
+    ):
+        return JSONResponse({"detail": "missing or invalid bearer token"}, status_code=401)
+    return await call_next(request)
 
 
 def seed() -> None:
@@ -191,6 +212,70 @@ def source_history(source_id: str) -> JSONResponse:
 def toggle_autopilot(payload: dict = Body(default={})) -> JSONResponse:
     watch.set_enabled(bool(payload.get("enabled")))
     return JSONResponse({"enabled": watch.enabled()})
+
+
+@app.post("/api/sources/{source_id}/rollback")
+def rollback(source_id: str, payload: dict = Body(default={})) -> JSONResponse:
+    """Move the active spec pointer to a historical version.
+
+    Immutable versions make this a pointer move (ADR-0003) — but it is still
+    a production change, so it demands an accountable actor and lands in the
+    audit ledger and webhook stream like any deploy.
+    """
+    actor = (payload.get("actor") or "").strip()
+    if not actor:
+        raise HTTPException(422, "rollback requires an accountable actor")
+    src = registry.get_source(source_id)
+    if src is None:
+        raise HTTPException(404, f"unknown source {source_id}")
+    current = src["active_version"]
+    to_version = payload.get("to_version") or current - 1
+    if to_version == current:
+        raise HTTPException(409, f"spec v{to_version} is already active")
+    try:
+        registry.activate_version(source_id, int(to_version))
+    except KeyError as e:
+        raise HTTPException(404, str(e)) from e
+    registry.log_event(
+        source_id, "deploy", f"{actor} rolled back spec v{current} → v{to_version}"
+    )
+    notify.emit(
+        "rollback", source_id, {"summary": f"v{current} → v{to_version} by {actor}"}
+    )
+    return JSONResponse({"source_id": source_id, "active_version": int(to_version)})
+
+
+@app.get("/api/health")
+def health() -> JSONResponse:
+    return JSONResponse(
+        {
+            "status": "ok",
+            "version": __version__,
+            "uptime_s": round(time.time() - STARTED_AT, 1),
+            "sources": len(registry.list_sources()),
+            "autopilot": watch.enabled(),
+        }
+    )
+
+
+@app.get("/metrics")
+def metrics() -> PlainTextResponse:
+    """Prometheus exposition format, dependency-free."""
+    counters = registry.ops_counters()
+    gauges = {"pending_heals", "open_incidents"} | {
+        k for k in counters if k.startswith("sources_")
+    }
+    lines = [
+        "# HELP reweave_up 1 if the control plane is serving.",
+        "# TYPE reweave_up gauge",
+        "reweave_up 1",
+        f"reweave_uptime_seconds {round(time.time() - STARTED_AT, 1)}",
+    ]
+    for key, value in sorted(counters.items()):
+        kind = "gauge" if key in gauges else "counter"
+        lines.append(f"# TYPE reweave_{key} {kind}")
+        lines.append(f"reweave_{key} {value}")
+    return PlainTextResponse("\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
 
 
 @app.post("/api/run/{source_id}")

@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import registry, sentinel, surgeon
+from . import notify, registry, sentinel, surgeon
 from .extractor import extract
 from .fetch import fetch
 from .gates import ApprovalGate
@@ -68,6 +68,11 @@ def run_source(source_id: str) -> dict[str, Any]:
         "drift",
         f"structural drift detected: {'; '.join(report.failures) or 'low confidence'}",
     )
+    notify.emit(
+        "drift_detected",
+        source_id,
+        {"summary": "; ".join(report.failures)[:300], "confidence": round(report.confidence, 3)},
+    )
 
     if registry.pending_proposals(source_id):
         registry.log_event(source_id, "gate", "heal already pending — awaiting approval")
@@ -83,6 +88,11 @@ def run_source(source_id: str) -> dict[str, Any]:
             source_id,
             "escalate",
             "Surgeon could not validate a repair — escalating to human with full evidence",
+        )
+        notify.emit(
+            "heal_escalated",
+            source_id,
+            {"summary": "no validated repair possible; human attention needed"},
         )
         return result
 

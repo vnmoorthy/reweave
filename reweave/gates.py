@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import impact, registry
+from . import impact, notify, registry
 from .models import ExtractionSpec, HealProposal
 
 AUTONOMY_LEVELS = ("manual", "assisted", "auto")
@@ -34,6 +34,15 @@ class ApprovalGate:
             f"heal proposal {proposal.id} awaiting human approval "
             f"(v{proposal.base_version} → v{proposal.new_spec.version}, "
             f"validation confidence {proposal.validation.confidence:.0%})",
+        )
+        notify.emit(
+            "heal_pending",
+            proposal.source_id,
+            {
+                "summary": f"repair v{proposal.base_version}→v{proposal.new_spec.version} "
+                f"validated at {proposal.validation.confidence:.0%}, awaiting approval",
+                "proposal_id": proposal.id,
+            },
         )
         return proposal.to_dict()
 
@@ -60,6 +69,11 @@ class ApprovalGate:
             f"{actor} approved heal {proposal_id}: spec v{spec.version} deployed "
             f"(+{minutes:.0f} engineer-minutes, +${dollars:.2f} saved)",
         )
+        notify.emit(
+            "heal_approved",
+            data["source_id"],
+            {"summary": f"spec v{spec.version} deployed by {actor}", "proposal_id": proposal_id},
+        )
         data["status"] = "approved"
         return data
 
@@ -76,6 +90,11 @@ class ApprovalGate:
             data["source_id"],
             "gate",
             f"{actor} rejected heal {proposal_id}" + (f": {reason}" if reason else ""),
+        )
+        notify.emit(
+            "heal_rejected",
+            data["source_id"],
+            {"summary": f"rejected by {actor}" + (f": {reason}" if reason else "")},
         )
         data["status"] = "rejected"
         return data

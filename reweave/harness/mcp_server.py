@@ -17,7 +17,7 @@ import json
 import sys
 from typing import Any
 
-from .. import demo, impact, registry
+from .. import __version__, demo, impact, registry
 from ..pipeline import gate, run_source
 
 PROTOCOL_VERSION = "2025-06-18"
@@ -166,7 +166,7 @@ def handle(msg: dict[str, Any]) -> dict[str, Any] | None:
             "result": {
                 "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "reweave", "version": "0.1.0"},
+                "serverInfo": {"name": "reweave", "version": __version__},
             },
         }
     if method == "notifications/initialized":

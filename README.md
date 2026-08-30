@@ -161,10 +161,37 @@ The harness's agent triages incidents, reads proposals, and *asks its human* —
 
 For hostile production sites, set `BRIGHTDATA_API_KEY` and fetching routes through **Bright Data Web Unlocker** automatically — every page carries provenance (`brightdata:zone`, `direct`, `demo:v2`) into the audit log.
 
+## 🏭 Run it like infrastructure
+
+Reweave ships with the operational surface a production deployment expects:
+
+```bash
+docker compose up                       # containerized, /data volume, healthcheck built in
+curl localhost:8321/api/health          # {"status":"ok","version":"0.3.0","uptime_s":…}
+curl localhost:8321/metrics             # Prometheus: runs, drift, heals, $ recovered, per-status gauges
+```
+
+- **Webhooks** — set `REWEAVE_WEBHOOK_URL` and every lifecycle event
+  (`drift_detected`, `heal_pending`, `heal_approved`, `rollback`, …) is
+  POSTed as JSON with a Slack-compatible `text` field. Best-effort by design:
+  a dead endpoint can never stall a pipeline run.
+- **One-move rollback** — `POST /api/sources/{id}/rollback` (or the `↩`
+  button): immutable spec versions make a bad approval recoverable in
+  seconds, with the actor recorded in the ledger.
+- **API auth** — set `REWEAVE_API_TOKEN` to require a bearer token on every
+  `/api/` route; `/api/health` stays open for load balancers and the
+  dashboard prompts for the token once.
+- **Fast where it counts** — the whole repair path is milliseconds
+  ([measured](benchmarks/RESULTS.md), Apple M3, median of 25 runs): full heal
+  synthesis **6.7ms**, bootstrap-from-examples **2.3ms**, drift assessment
+  **0.04ms**. Healing is effectively free next to one human context switch.
+- **[Deploy guide](docs/deploy.md)** · **[API reference](docs/reference.md)**
+  · **[FAQ](docs/faq.md)** · **[Benchmarks](benchmarks/RESULTS.md)**
+
 ## 🧪 Tested like infrastructure
 
 ```bash
-python -m pytest      # 13 tests, including the full lifecycle E2E
+python -m pytest      # 26 tests, including the full lifecycle E2E
 ```
 
 The E2E suite proves the whole story: healthy → redesign → drift → synthesis → *nothing deploys on rerun* → human approves → healthy on v2 → impact booked. Plus: healing the second redesign *from the healed spec*, refusing to heal when the facts are gone, rejection flows, and double-approve conflicts.
@@ -189,7 +216,7 @@ reweave/
 ├── examples/                # real_source.py — monitor live books.toscrape.com
 ├── skills/reweave-operator/ # TrueForge SKILL.md instruction pack
 ├── harness/                 # TrueForge MCP registration + approval policy
-├── tests/                   # 13 tests incl. full-lifecycle E2E
+├── tests/                   # 26 tests incl. full-lifecycle E2E
 └── docs/                    # architecture deep dive + ADRs + assets
 ```
 

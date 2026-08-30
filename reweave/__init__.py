@@ -7,4 +7,4 @@ The runtime keeps three loops honest:
 * the **Gate** refuses to deploy any repair a human has not approved.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

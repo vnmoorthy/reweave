@@ -1,0 +1,37 @@
+# VCS / tool state
+.git
+.github
+.gitignore
+.claude
+.reweave
+.pytest_cache
+.ruff_cache
+
+# Python build/runtime junk (** patterns match at any depth)
+**/__pycache__
+**/*.py[cod]
+**/*.egg-info
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env
+**/*.db
+**/.DS_Store
+node_modules/
+
+# Not needed inside the image
+tests/
+docs/
+examples/
+Makefile
+CHANGELOG.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+
+# Docker packaging itself
+Dockerfile
+.dockerignore
+compose.yaml

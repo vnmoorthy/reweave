@@ -7,7 +7,7 @@ Thanks for pulling on a thread. 🧵
 ```bash
 git clone https://github.com/vnmoorthy/reweave && cd reweave
 pip install -e ".[dev]"
-python -m pytest        # 13 tests must pass before and after your change
+python -m pytest        # the full suite must pass before and after your change
 ```
 
 ## Ground rules

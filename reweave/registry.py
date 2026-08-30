@@ -162,6 +162,19 @@ def save_spec(source_id: str, spec: ExtractionSpec, activate: bool = False) -> N
             )
 
 
+def activate_version(source_id: str, version: int) -> None:
+    """Move the active pointer to an existing historical version (rollback)."""
+    with _conn() as c:
+        row = c.execute(
+            "SELECT 1 FROM specs WHERE source_id=? AND version=?", (source_id, version)
+        ).fetchone()
+        if row is None:
+            raise KeyError(f"source {source_id} has no spec v{version}")
+        c.execute(
+            "UPDATE sources SET active_version=? WHERE id=?", (version, source_id)
+        )
+
+
 def spec_history(source_id: str) -> list[dict[str, Any]]:
     with _conn() as c:
         rows = c.execute(
@@ -337,6 +350,36 @@ def record_heal(
             "VALUES(?,?,?,?,?,?)",
             (new_id("healrec"), source_id, time.time(), minutes_saved, dollars_saved, approved_by),
         )
+
+
+def ops_counters() -> dict[str, float]:
+    """Aggregate counters for /metrics — cheap COUNT queries, no state kept."""
+    with _conn() as c:
+        runs = c.execute("SELECT COUNT(*) AS n FROM events WHERE level='run'").fetchone()["n"]
+        drift = c.execute("SELECT COUNT(*) AS n FROM events WHERE level='drift'").fetchone()["n"]
+        pending = c.execute(
+            "SELECT COUNT(*) AS n FROM proposals WHERE status='pending'"
+        ).fetchone()["n"]
+        open_inc = c.execute(
+            "SELECT COUNT(*) AS n FROM incidents WHERE status='open'"
+        ).fetchone()["n"]
+        by_status: dict[str, float] = {}
+        for row in c.execute("SELECT status, COUNT(*) AS n FROM sources GROUP BY status"):
+            by_status[row["status"]] = row["n"]
+        heals = c.execute(
+            "SELECT COUNT(*) AS n, COALESCE(SUM(minutes_saved),0) AS m, "
+            "COALESCE(SUM(dollars_saved),0) AS d FROM heals"
+        ).fetchone()
+        return {
+            "runs_total": runs,
+            "drift_detected_total": drift,
+            "heals_deployed_total": heals["n"],
+            "engineer_minutes_saved_total": heals["m"],
+            "dollars_saved_total": heals["d"],
+            "pending_heals": pending,
+            "open_incidents": open_inc,
+            **{f"sources_{k}": v for k, v in by_status.items()},
+        }
 
 
 def impact_totals() -> dict[str, Any]:

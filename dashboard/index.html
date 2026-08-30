@@ -211,8 +211,16 @@
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   let lastVariant = null, lastEventId = 0, busy = false;
 
-  async function api(path, opts) {
+  function apiToken() { try { return localStorage.getItem("reweave_token") || ""; } catch { return ""; } }
+  async function api(path, opts, retried) {
+    opts = opts || {};
+    const tok = apiToken();
+    if (tok) opts.headers = Object.assign({}, opts.headers, {"Authorization": `Bearer ${tok}`});
     const r = await fetch(path, opts);
+    if (r.status === 401 && !retried) {
+      const t = prompt("This API is token-protected (REWEAVE_API_TOKEN). Enter token:");
+      if (t) { try { localStorage.setItem("reweave_token", t.trim()); } catch {} return api(path, opts, true); }
+    }
     if (!r.ok) throw new Error(await r.text());
     return r.json();
   }
@@ -236,6 +244,7 @@
         <div class="acts">
           <button onclick="runOne('${esc(s.id)}')">▶ run</button>
           <button onclick="showData('${esc(s.id)}')">☰ data</button>
+          ${s.active_version > 1 ? `<button onclick="rollback('${esc(s.id)}', ${s.active_version - 1})">↩ v${s.active_version - 1}</button>` : ""}
           <button class="del" onclick="removeSource('${esc(s.id)}')">✕</button>
         </div>
       </div>`).join("");
@@ -263,6 +272,17 @@
   }
 
   async function runOne(sid) { await api(`/api/run/${sid}`, {method: "POST"}).catch(() => {}); refresh(); }
+
+  async function rollback(sid, toVersion) {
+    const actor = (prompt(`Roll back '${sid}' to spec v${toVersion}?\nRollbacks are audited — enter your name:`) || "").trim();
+    if (!actor) return;
+    try {
+      await api(`/api/sources/${sid}/rollback`, {method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({actor, to_version: toVersion})});
+      await api(`/api/run/${sid}`, {method: "POST"}).catch(() => {});
+    } catch (e) { alert(String(e.message || e)); }
+    refresh();
+  }
 
   async function removeSource(sid) {
     if (!confirm(`Remove source '${sid}' and its run history?`)) return;
