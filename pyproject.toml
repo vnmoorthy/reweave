@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=84.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -22,15 +22,15 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
 dependencies = [
-    "beautifulsoup4>=4.12",
-    "lxml>=5.0",
-    "httpx>=0.27",
-    "fastapi>=0.110",
-    "uvicorn>=0.29",
+    "beautifulsoup4>=4.15.0",
+    "lxml>=6.1.2",
+    "httpx>=0.28.1",
+    "fastapi>=0.141.1",
+    "uvicorn>=0.52.4",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.6"]
+dev = ["pytest>=9.1.1", "ruff>=0.16.4"]
 
 [project.scripts]
 reweave = "reweave.cli:main"
